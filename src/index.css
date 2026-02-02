@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ChatGPT-like light green */
+    --bg: #f4fbf7;
+    --surface: #eef8f2;      /* subtle surface tint */
+    --card: #ffffff;
+    --nav: #f0faf4;
+    --footer: #ecf7f0;
+
+    --text: #0f172a;
+    --muted: #475569;
+
+    --border: #e5e7eb;
+    --divider: rgba(15, 23, 42, 0.10);
+
+    /* Inputs */
+    --input-bg: rgba(255, 255, 255, 0.70);
+    --input-bg-focus: rgba(255, 255, 255, 0.92);
+    --placeholder: rgba(71, 85, 105, 0.70);
+
+    --accent: #16a34a;
+    --accent-2: #0f7a37;
+
+    /* chat bubble background */
+    --chat-bg: #ffffff;
+    --chat-ai: #f0faf4;
+    --chat-user: #16a34a;
+  }
+
+  .dark {
+    --bg: #0b1220;
+    --surface: #0a162a;
+    --card: #0f172a;
+    --nav: #0c1627;
+    --footer: #0b1424;
+
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+
+    --border: #1f2937;
+    --divider: rgba(229, 231, 235, 0.12);
+
+    /* Inputs */
+    --input-bg: rgba(15, 23, 42, 0.60);
+    --input-bg-focus: rgba(15, 23, 42, 0.85);
+    --placeholder: rgba(148, 163, 184, 0.70);
+
+    --accent: #22c55e;
+    --accent-2: #16a34a;
+
+    --chat-bg: #0b1220;
+    --chat-ai: #0f172a;
+    --chat-user: #22c55e;
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+  }
+}
+
+@layer components {
+  .ui-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--divider);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+    backdrop-filter: blur(10px);
+  }
+
+  .ui-input {
+    width: 100%;
+    border: 1px solid var(--divider);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: var(--input-bg);
+    color: var(--text);
+    outline: none;
+    transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+  .ui-input::placeholder {
+    color: var(--placeholder);
+  }
+
+  /* make dropdown menu readable in dark mode */
+  select.ui-input option {
+    background: var(--card);
+    color: var(--text);
+  }
+  .ui-input:focus {
+    background: var(--input-bg-focus);
+    border-color: rgba(34, 197, 94, 0.55);
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+  }
+
+  .ui-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .primary-btn {
+    @apply inline-flex items-center justify-center font-semibold rounded-lg duration-200 px-6 py-2;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color: white;
+    box-shadow: 0px 10px 18px -14px rgba(22,163,74,0.55);
+  }
+  .primary-btn:hover {
+    filter: brightness(0.98);
+    box-shadow: 0px 12px 20px -14px rgba(34,197,94,0.6);
+  }
+}

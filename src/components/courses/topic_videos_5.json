@@ -1,0 +1,152 @@
+[
+    {
+        "topic": "Definition and Principles of OOP",
+        "url": "https://www.youtube.com/watch?v=AEo4KgwKYoU"
+    },
+    {
+        "topic": "Benefits and Advantages of OOP",
+        "url": "https://www.youtube.com/watch?v=Sxkd_Qk29gA"
+    },
+    
+    {
+        "topic": "Classes and Objects",
+        "url": "https://www.youtube.com/watch?v=L677QCBCuWk"
+    },
+    {
+        "topic": "Class Definition and Structure",
+        "url": "https://www.youtube.com/watch?v=uO9P-J356vw"
+    },
+    {
+        "topic": "Object Instantiation and Properties",
+        "url": "https://www.youtube.com/watch?v=LfSaSANJPLg"
+    },
+    {
+        "topic": "Data Types and Variables",
+        "url": "https://www.youtube.com/watch?v=X0zdAG7gfgs"
+    },
+    {
+        "topic": "Primitive Data Types",
+        "url": "https://www.youtube.com/watch?v=oKuUSBqv4rg"
+    },
+    {
+        "topic": "Object Data Types",
+        "url": "https://www.youtube.com/watch?v=cnT1oW5_ePM"
+    },
+    
+    {
+        "topic": "Inheritance",
+        "url": "https://www.youtube.com/watch?v=bkaWQ5HlE5U"
+    },
+    {
+        "topic": "Parent and Child Classes",
+        "url": "https://www.youtube.com/watch?v=V3Klx9WEGFA"
+    },
+    {
+        "topic": "Subclassing and Overriding",
+        "url": "https://www.youtube.com/watch?v=E-0MMeNi5Cw"
+    },
+    {
+        "topic": "Polymorphism",
+        "url": "https://www.youtube.com/watch?v=jhDUxynEQRI"
+    },
+    {
+        "topic": "Method Overloading and Overriding",
+        "url": "https://www.youtube.com/watch?v=DSZI90Db24I"
+    },
+    {
+        "topic": "Virtual Methods and Dynamic Binding",
+        "url": "https://www.youtube.com/watch?v=fB3JHNnlRfI"
+    },
+    
+    {
+        "topic": "Encapsulation",
+        "url": "https://www.youtube.com/watch?v=P-8N1xVF6h0"
+    },
+    {
+        "topic": "Access Modifiers",
+        "url": "https://www.youtube.com/watch?v=vgg9T4_0CNA"
+    },
+    {
+        "topic": "Data Hiding and Information Security",
+        "url": "https://www.youtube.com/watch?v=BdyGcVH9fS4"
+    },
+    {
+        "topic": "Abstraction",
+        "url": "https://www.youtube.com/watch?v=rQlMtztiAoA"
+    },
+    {
+        "topic": "Interfaces and Abstract Classes",
+        "url": "https://www.youtube.com/watch?v=HvPlEJ3LHgE"
+    },
+    {
+        "topic": "Method Signatures and Contracts",
+        "url": "https://www.youtube.com/watch?v=yUeI4nqvNs8"
+    },
+    
+    {
+        "topic": "Common Design Patterns",
+        "url": "https://www.youtube.com/watch?v=tv-_1er1mWI"
+    },
+    {
+        "topic": "Object-Oriented Analysis and Design",
+        "url": "https://www.youtube.com/watch?v=3qKKcUZqfQk"
+    },
+    {
+        "topic": "Use Cases and Class Diagrams",
+        "url": "https://www.youtube.com/watch?v=WnMQ8HlmeXc"
+    },
+    {
+        "topic": "Object Modeling and Code Generation",
+        "url": "https://www.youtube.com/watch?v=xysHDSNnWa0"
+    },
+    
+    {
+        "topic": "Implementing OOP in a Programming Language",
+        "url": "https://www.youtube.com/watch?v=pTB0EiLXUC8"
+    },
+    {
+        "topic": "Creating Classes, Objects, and Interfaces",
+        "url": "https://www.youtube.com/watch?v=HvPlEJ3LHgE"
+    },
+    {
+        "topic": "Using Inheritance, Polymorphism, and Encapsulation",
+        "url": "https://www.youtube.com/watch?v=pTB0EiLXUC8"
+    },
+    {
+        "topic": "Real-World OOP Applications",
+        "url": "https://www.youtube.com/watch?v=pTB0EiLXUC8"
+    },
+    {
+        "topic": "Game Development",
+        "url": "https://www.youtube.com/watch?v=EYt6uDr-PHQ"
+    },
+    {
+        "topic": "Web Development",
+        "url": "https://www.youtube.com/watch?v=QaU6gEtOwyE"
+    },
+    {
+        "topic": "Business and Enterprise Software",
+        "url": "https://www.youtube.com/watch?v=c9HfNg4a_Og"
+    },
+    
+    {
+        "topic": "Object-Oriented Metrics and Design Principles",
+        "url": "https://www.youtube.com/watch?v=bTv3qCtSR5c"
+    },
+    {
+        "topic": "Code Metrics and Analysis Tools",
+        "url": "https://www.youtube.com/watch?v=oc-IoXcVkus"
+    },
+    {
+        "topic": "SOLID Design Principles",
+        "url": "https://www.youtube.com/watch?v=pTB30aXS77U"
+    },
+    {
+        "topic": "Object-Relational Mapping",
+        "url": "https://www.youtube.com/watch?v=7E1M1W9o7PA"
+    },
+    {
+        "topic": "Event-Driven Programming and Architectures",
+        "url": "https://www.youtube.com/watch?v=hrvx8Nv9eQA"
+    }
+]
