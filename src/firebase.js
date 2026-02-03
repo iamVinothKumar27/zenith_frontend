@@ -9,6 +9,14 @@ import {
   updateProfile,
 } from "firebase/auth";
 
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+
 /**
  * ✅ Use Vite env vars (recommended).
  * Create a .env file in project root (frontend) like:
@@ -28,10 +36,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
+const storage = getStorage(app);
 
 export {
   auth,
   googleProvider,
+  storage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
   signOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,

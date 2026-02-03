@@ -12,6 +12,7 @@ import MyCourses from "./components/courses/MyCourses.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import Services from "./pages/Services";
 import Notes from "./pages/Notes.jsx";
+import Profile from "./pages/Profile.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import AdminRoute from "./auth/AdminRoute.jsx";
 import AdminLayout from "./admin/AdminLayout.jsx";
@@ -112,6 +113,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Notes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />

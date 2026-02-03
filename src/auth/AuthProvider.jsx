@@ -41,6 +41,22 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const refreshProfile = async (overrideToken) => {
+    const t = overrideToken || token;
+    if (!t) return null;
+    try {
+      const res = await fetch(`${API_BASE}/profile/me`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      if (!res.ok) return null;
+      const j = await res.json();
+      if (j?.user) setProfile(j.user);
+      return j;
+    } catch {
+      return null;
+    }
+  };
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setLoading(true);
@@ -56,6 +72,8 @@ export function AuthProvider({ children }) {
         setToken(idToken);
         const mongoProfile = await syncFirebaseUserToMongo(u);
         if (mongoProfile?.user) setProfile(mongoProfile.user);
+        // Optional: fetch enriched profile fields if available
+        await refreshProfile(idToken);
       } finally {
         setLoading(false);
       }
@@ -70,6 +88,8 @@ export function AuthProvider({ children }) {
       token,
       loading,
       apiBase: API_BASE,
+      setProfile,
+      refreshProfile,
     }),
     [user, profile, token, loading]
   );

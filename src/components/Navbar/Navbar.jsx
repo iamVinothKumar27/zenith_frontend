@@ -1,64 +1,99 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { IoMdMenu } from "react-icons/io";
-import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+
 import { auth, signOut } from "../../firebase.js";
 import { useAuth } from "../../auth/AuthProvider.jsx";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
 
-
-const NavbarMenu = [
+const MENU = [
   { id: 1, title: "Home", path: "/" },
   { id: 2, title: "Services", path: "/services" },
   { id: 3, title: "My Courses", path: "/my-courses", authOnly: true },
   { id: 4, title: "Notes", path: "/notes", authOnly: true },
+  { id: 5, title: "Profile", path: "/profile", authOnly: true },
 ];
 
-const Navbar = () => {
+function initials(name = "") {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "U";
+  const a = parts[0]?.[0] || "U";
+  const b = parts.length > 1 ? (parts[parts.length - 1]?.[0] || "") : "";
+  return (a + b).toUpperCase();
+}
+
+function DrawerLink({ to, children, onClick }) {
+  return (
+    <NavLink
+      to={to}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `block px-3 py-2 rounded-xl text-sm font-medium transition ${
+          isActive
+            ? "bg-[var(--accent)] text-white"
+            : "text-[var(--text)] hover:bg-[var(--bg)]"
+        }`
+      }
+    >
+      {children}
+    </NavLink>
+  );
+}
+
+export default function Navbar() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
-  const displayName =
-    profile?.name ||
-    user?.displayName ||
-    (user?.email ? user.email.split("@")[0] : "");
+  const displayName = useMemo(() => {
+    return (
+      profile?.name ||
+      user?.displayName ||
+      (user?.email ? user.email.split("@")[0] : "")
+    );
+  }, [profile?.name, user?.displayName, user?.email]);
+
+  const avatarUrl =
+    profile?.photoLocalURL ||
+    profile?.photoURL ||
+    user?.photoURL ||
+    "";
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      setOpen(false);
       navigate("/");
     } catch (e) {
       console.error(e);
     }
   };
 
+  const visibleMenu = MENU.filter((m) => !m.authOnly || !!user);
+
   return (
-    <nav className="bg-[var(--nav)] text-[var(--text)] border-b border-[var(--divider)]">
-      <motion.div
-        initial={{ opacity: 0, y: -50 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="container py-6 flex justify-between items-center"
-      >
+    <header className="sticky top-0 z-30 bg-[var(--nav)] text-[var(--text)] border-b border-[var(--divider)]">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        {/* Left: Hamburger + Brand */}
         <div className="flex items-center gap-3">
-          <h1 className="font-bold text-2xl text-[var(--text)]">Zenith</h1>
+          <button
+            onClick={() => setOpen(true)}
+            className="w-10 h-10 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90 grid place-items-center"
+            aria-label="Open menu"
+            title="Menu"
+          >
+            <IoMdMenu className="text-2xl" />
+          </button>
+
+          <Link to="/" className="font-bold text-xl tracking-tight">
+            Zenith
+          </Link>
         </div>
 
-        <div className="hidden md:flex items-center gap-4">
-          {NavbarMenu.filter((m) => !m.authOnly || !!user).map((m) =>
-            m.path.startsWith("/#") ? (
-              <a key={m.id} href={m.path} className="text-[var(--muted)] hover:text-[var(--text)] font-medium">
-                {m.title}
-              </a>
-            ) : (
-              <Link key={m.id} to={m.path} className="text-[var(--muted)] hover:text-[var(--text)] font-medium">
-                {m.title}
-              </Link>
-            )
-          )}
-
-          {/* Theme toggle */}
+        {/* Right: Theme + Profile pill + Logout */}
+        <div className="flex items-center gap-2">
           <button
             onClick={toggleTheme}
             className="w-10 h-10 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90 grid place-items-center"
@@ -69,73 +104,162 @@ const Navbar = () => {
           </button>
 
           {user ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-[var(--muted)]">Hi, <b className="text-[var(--text)]">{displayName}</b></span>
+            <>
+              <button
+                onClick={() => navigate("/profile")}
+                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90"
+                title="Profile"
+              >
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="profile"
+                    className="w-7 h-7 rounded-full object-cover"
+                    onError={(e) => {
+                      // If image 404s in production, fall back to initials
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-white text-xs font-bold grid place-items-center">
+                    {initials(displayName)}
+                  </div>
+                )}
+                <div className="text-sm font-semibold max-w-[160px] truncate">
+                  {displayName || "User"}
+                </div>
+              </button>
+
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-semibold hover:bg-[var(--accent-2)]"
+                className="px-3 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white text-sm font-semibold"
               >
                 Logout
               </button>
-            </div>
+            </>
           ) : (
-            <div className="flex items-center gap-3">
-              <Link to="/login" className="px-4 py-2 rounded-xl border border-[var(--border)] font-semibold bg-[var(--card)]">
+            <div className="flex items-center gap-2">
+              <Link
+                to="/login"
+                className="px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm font-semibold"
+              >
                 Login
               </Link>
-              <Link to="/signup" className="px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white font-semibold">
+              <Link
+                to="/signup"
+                className="px-3 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white text-sm font-semibold"
+              >
                 Sign up
               </Link>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Mobile */}
-        <div className="md:hidden flex items-center gap-2">
-          <button
-            onClick={toggleTheme}
-            className="w-10 h-10 rounded-xl border border-[var(--border)] bg-[var(--card)] grid place-items-center"
-            title={theme === "dark" ? "Switch to Light" : "Switch to Dark"}
-          >
-            <span className="text-lg">{theme === "dark" ? "☀️" : "🌙"}</span>
-          </button>
-          <button onClick={() => setOpen((s) => !s)} className="text-3xl">
-            <IoMdMenu />
-          </button>
-        </div>
-      </motion.div>
+      {/* Drawer */}
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              className="fixed inset-0 bg-black/40 z-40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
+            />
 
-      {open && (
-        <div className="md:hidden bg-[var(--card)] border border-[var(--border)] shadow-lg rounded-2xl mx-4 p-4">
-          <div className="flex flex-col gap-3">
-            {NavbarMenu.map((m) => (
-              <a key={m.id} href={m.path} className="text-[var(--muted)] hover:text-[var(--text)] font-medium" onClick={() => setOpen(false)}>
-                {m.title}
-              </a>
-            ))}
-
-            {user ? (
-              <>
-                <div className="text-sm text-[var(--muted)]">Hi, <b className="text-[var(--text)]">{displayName}</b></div>
-                <button onClick={handleLogout} className="px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white font-semibold">
-                  Logout
+            {/* Panel */}
+            <motion.aside
+              className="fixed top-0 left-0 h-full w-[300px] max-w-[85vw] z-50 bg-[var(--card)] border-r border-[var(--border)] shadow-2xl"
+              initial={{ x: -320 }}
+              animate={{ x: 0 }}
+              exit={{ x: -320 }}
+              transition={{ type: "spring", stiffness: 260, damping: 25 }}
+              role="dialog"
+              aria-label="Menu"
+            >
+              <div className="p-4 flex items-center justify-between">
+                <div className="font-semibold">Menu</div>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="w-9 h-9 rounded-xl border border-[var(--border)] bg-[var(--bg)] hover:opacity-90 grid place-items-center"
+                  aria-label="Close menu"
+                >
+                  ✕
                 </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl border border-[var(--border)] font-semibold bg-[var(--card)]">
-                  Login
-                </Link>
-                <Link to="/signup" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white font-semibold">
-                  Sign up
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </nav>
-  );
-};
+              </div>
 
-export default Navbar;
+              {/* User card */}
+              <div className="px-4 pb-3">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-3 flex items-center gap-3">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt="profile"
+                      className="w-12 h-12 rounded-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-[var(--accent)] text-white font-bold grid place-items-center">
+                      {initials(displayName)}
+                    </div>
+                  )}
+
+                  <div className="min-w-0">
+                    <div className="font-semibold truncate">
+                      {displayName || "Guest"}
+                    </div>
+                    <div className="text-xs text-[var(--muted)] truncate">
+                      {user?.email || ""}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Links */}
+              <nav className="px-4 flex flex-col gap-1">
+                {visibleMenu.map((m) => (
+                  <DrawerLink key={m.id} to={m.path} onClick={() => setOpen(false)}>
+                    {m.title}
+                  </DrawerLink>
+                ))}
+              </nav>
+
+              {/* Bottom Logout */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[var(--border)]">
+                {user ? (
+                  <button
+                    onClick={handleLogout}
+                    className="w-full py-3 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white font-semibold"
+                  >
+                    Logout
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Link
+                      to="/login"
+                      onClick={() => setOpen(false)}
+                      className="flex-1 text-center py-3 rounded-xl border border-[var(--border)] bg-[var(--bg)] font-semibold"
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      to="/signup"
+                      onClick={() => setOpen(false)}
+                      className="flex-1 text-center py-3 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white font-semibold"
+                    >
+                      Sign up
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </header>
+  );
+}
