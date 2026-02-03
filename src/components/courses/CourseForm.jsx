@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { auth } from "../../firebase.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
+const API_BASE_CLEAN = API_BASE.replace(/\/$/, "");
 
 const CourseForm = () => {
   const { title } = useParams();
@@ -47,7 +48,7 @@ const CourseForm = () => {
 
         // ✅ Save course roadmap/videos to DB for "My Courses" resume
         try {
-          await fetch("http://127.0.0.1:5000/course/state/save", {
+          await fetch(`${API_BASE_CLEAN}/course/state/save`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ courseTitle: courseKey, formData, roadmap: result.roadmap, videos: result.videos }),
