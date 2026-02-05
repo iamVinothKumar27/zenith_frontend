@@ -1,7 +1,28 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
+// ✅ Multi-backend support (comma-separated). Example:
+// VITE_API_BASES=https://server.zenithlearning.site,https://zenithserver.vinothkumarts.in
+const API_BASES = (import.meta.env.VITE_API_BASES || import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000")
+  .split(",")
+  .map(s => s.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+async function fetchWithFallback(path, options) {
+  let lastErr = null;
+  const p = path.startsWith("/") ? path : `/${path}`;
+  for (const base of API_BASES) {
+    try {
+      const res = await fetch(`${base}${p}`, options);
+      if (res.status < 500) return res;
+      lastErr = new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("All backends failed");
+}
+
 
 const VideoPage = () => {
   const location = useLocation();
@@ -40,7 +61,7 @@ const VideoPage = () => {
     e.preventDefault();
     setLoadingRoadmap(true);
     try {
-      const res = await fetch(`${API_BASE}/generate-roadmap`, {
+      const res = await fetchWithFallback(`/generate-roadmap`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -99,7 +120,7 @@ const VideoPage = () => {
     setShowSummary(true);
 
     try {
-      const res = await fetch(`${API_BASE}/summarize`, {
+      const res = await fetchWithFallback(`/summarize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transcript: transcript,summaryType:formData.summaryType }),

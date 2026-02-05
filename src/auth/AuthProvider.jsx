@@ -2,7 +2,29 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { auth } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
+// ✅ Multi-backend support (comma-separated). Example:
+// VITE_API_BASES=https://server.zenithlearning.site,https://zenithserver.vinothkumarts.in
+const API_BASES = (import.meta.env.VITE_API_BASES || import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000")
+  .split(",")
+  .map(s => s.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+async function fetchWithFallback(path, options) {
+  let lastErr = null;
+  const p = path.startsWith("/") ? path : `/${path}`;
+  for (const base of API_BASES) {
+    try {
+      const res = await fetch(`${base}${p}`, options);
+      // Retry only on 5xx; for 2xx-4xx return the response as-is
+      if (res.status < 500) return res;
+      lastErr = new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("All backends failed");
+}
+
 
 const AuthContext = createContext(null);
 
@@ -17,7 +39,7 @@ async function syncFirebaseUserToMongo(user) {
     providerId: user.providerData?.[0]?.providerId || "firebase",
   };
 
-  const res = await fetch(`${API_BASE}/auth/firebase`, {
+  const res = await fetchWithFallback(`/auth/firebase`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -45,7 +67,7 @@ export function AuthProvider({ children }) {
     const t = overrideToken || token;
     if (!t) return null;
     try {
-      const res = await fetch(`${API_BASE}/profile/me`, {
+      const res = await fetchWithFallback(`/profile/me`, {
         headers: { Authorization: `Bearer ${t}` },
       });
       if (!res.ok) return null;
@@ -87,7 +109,7 @@ export function AuthProvider({ children }) {
       profile,
       token,
       loading,
-      apiBase: API_BASE,
+      apiBase: API_BASES?.[0] || "",
       setProfile,
       refreshProfile,
     }),

@@ -3,8 +3,28 @@ import { useNavigate, useParams } from "react-router-dom";
 import { auth } from "../../firebase.js";
 import { useAuth } from "../../auth/AuthProvider.jsx";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
-const API_BASE_CLEAN = API_BASE.replace(/\/$/, "");
+// ✅ Multi-backend support (comma-separated). Example:
+// VITE_API_BASES=https://server.zenithlearning.site,https://zenithserver.vinothkumarts.in
+const API_BASES = (import.meta.env.VITE_API_BASES || import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000")
+  .split(",")
+  .map(s => s.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+async function fetchWithFallback(path, options) {
+  let lastErr = null;
+  const p = path.startsWith("/") ? path : `/${path}`;
+  for (const base of API_BASES) {
+    try {
+      const res = await fetch(`${base}${p}`, options);
+      if (res.status < 500) return res;
+      lastErr = new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("All backends failed");
+}
+
 
 function calcAge(dobStr) {
   if (!dobStr) return null;
@@ -81,7 +101,7 @@ const CourseForm = () => {
       // Send age to backend (but do NOT ask user)
       const payload = { ...formData, age: computedAge, subject: courseKey };
 
-      const res = await fetch(`${API_BASE}/generate-roadmap`, {
+      const res = await fetchWithFallback(`/generate-roadmap`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         body: JSON.stringify(payload),
@@ -92,7 +112,7 @@ const CourseForm = () => {
       if (res.ok) {
         // ✅ Save course roadmap/videos to DB for "My Courses" resume
         try {
-          await fetch(`${API_BASE_CLEAN}/course/state/save`, {
+          await fetchWithFallback(`/course/state/save`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
             body: JSON.stringify({

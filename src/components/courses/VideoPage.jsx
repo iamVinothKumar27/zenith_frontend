@@ -59,9 +59,28 @@ const VideoPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  // ✅ Multi-backend support (comma-separated). Example:
+  // VITE_API_BASES=https://server.zenithlearning.site,https://zenithserver.vinothkumarts.in
+  const API_BASES = (import.meta.env.VITE_API_BASES || import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000")
+    .split(",")
+    .map(s => s.trim().replace(/\/$/, ""))
+    .filter(Boolean);
 
-  // ✅ Always use the same API base as the rest of the app
-  const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
+  async function fetchWithFallback(path, options) {
+    let lastErr = null;
+    const p = path.startsWith("/") ? path : `/${path}`;
+    for (const base of API_BASES) {
+      try {
+        const res = await fetch(`${base}${p}`, options);
+        if (res.status < 500) return res;
+        lastErr = new Error(`HTTP ${res.status}`);
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("All backends failed");
+  }
+
 
   // ✅ support refresh/direct URL open (/course/:title/videos or /courses/:id)
   const params = useParams();
@@ -173,12 +192,12 @@ const VideoPage = () => {
   const setMessages = chatMode === "pdf" ? setPdfMessages : setCourseMessages;
 
   // ---------------- Auth fetch ----------------
-  const authedFetch = async (url, options = {}) => {
+  const authedFetch = async (path, options = {}) => {
     const user = auth.currentUser;
     if (!user) throw new Error("Please login to continue.");
     const token = await user.getIdToken();
     const headers = { ...(options.headers || {}), Authorization: `Bearer ${token}` };
-    return fetch(url, { ...options, headers });
+    return fetchWithFallback(path, { ...options, headers });
   };
 
   // ---------------- Load course state if opened from "My Courses" ----------------
@@ -188,7 +207,7 @@ const VideoPage = () => {
       try {
         if (videos && Array.isArray(videos) && videos.length) return;
 
-        const res = await authedFetch(`${API_BASE}/course/state/get`, {
+        const res = await authedFetch(`/course/state/get`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           signal: ac.signal,
@@ -401,7 +420,7 @@ const VideoPage = () => {
       if (!videos || !Array.isArray(videos) || globalIdMaps.total <= 0) return;
 
       try {
-        const res = await authedFetch(`${API_BASE}/course/progress/get`, {
+        const res = await authedFetch(`/course/progress/get`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ courseTitle: courseKey }),
@@ -462,7 +481,7 @@ const VideoPage = () => {
         localStorage.setItem(getProgressLSKey(), JSON.stringify(payload));
       } catch {}
 
-      await authedFetch(`${API_BASE}/course/progress/save`, {
+      await authedFetch(`/course/progress/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseTitle: courseKey, progress: payload }),
@@ -492,7 +511,7 @@ const VideoPage = () => {
 
     saveDebounceRef.current = setTimeout(async () => {
       try {
-        await authedFetch(`${API_BASE}/course/progress/save`, {
+        await authedFetch(`/course/progress/save`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -612,7 +631,7 @@ const VideoPage = () => {
     setTranscriptError("");
 
     try {
-      const res = await authedFetch(`${API_BASE}/get-transcript`, {
+      const res = await authedFetch(`/get-transcript`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: videoUrl }),
@@ -657,7 +676,7 @@ const VideoPage = () => {
     setShowMindmap(false);
 
     try {
-      const res = await authedFetch(`${API_BASE}/summarize`, {
+      const res = await authedFetch(`/summarize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -714,7 +733,7 @@ const VideoPage = () => {
       const tCache = getTranscriptCache();
       const transcriptText = transcript || tCache[cv.video] || "";
 
-      const res = await authedFetch(`${API_BASE}/generate-mindmap`, {
+      const res = await authedFetch(`/generate-mindmap`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ac.signal,
@@ -752,7 +771,7 @@ const VideoPage = () => {
       const cleanTree = JSON.parse(JSON.stringify(mindmapTree));
       delete cleanTree.__videoUrl;
 
-      const res = await authedFetch(`${API_BASE}/notes/save-mindmap`, {
+      const res = await authedFetch(`/notes/save-mindmap`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -826,7 +845,7 @@ const VideoPage = () => {
       const transcriptCache = getTranscriptCache();
       const transcriptToSend = transcript || transcriptCache[videoUrl] || "";
 
-      const response = await authedFetch(`${API_BASE}/generate-mcq`, {
+      const response = await authedFetch(`/generate-mcq`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transcript: transcriptToSend, video_url: videoUrl, courseTitle: courseKey }),
@@ -854,7 +873,7 @@ const VideoPage = () => {
 
   const markCompletionInDB = async (videoUrl) => {
     try {
-      await authedFetch(`${API_BASE}/progress/upsert`, {
+      await authedFetch(`/progress/upsert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -877,7 +896,7 @@ const VideoPage = () => {
         return;
       }
 
-      const res = await authedFetch(`${API_BASE}/submit-quiz`, {
+      const res = await authedFetch(`/submit-quiz`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quiz_id: quizId, answers: answersList, courseTitle: courseKey }),
@@ -892,7 +911,7 @@ const VideoPage = () => {
           const transcriptCache = getTranscriptCache();
           const transcriptToSend = transcript || transcriptCache[videoUrl] || "";
 
-          const regen = await authedFetch(`${API_BASE}/generate-mcq`, {
+          const regen = await authedFetch(`/generate-mcq`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ transcript: transcriptToSend, video_url: videoUrl, courseTitle: courseKey }),
@@ -905,7 +924,7 @@ const VideoPage = () => {
               [videoUrl]: { quiz_id: regenData.quiz_id, questions: regenData.questions || mcqs },
             });
 
-            const retry = await authedFetch(`${API_BASE}/submit-quiz`, {
+            const retry = await authedFetch(`/submit-quiz`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ quiz_id: regenData.quiz_id, answers: answersList, courseTitle: courseKey }),
@@ -1067,7 +1086,7 @@ const VideoPage = () => {
       const form = new FormData();
       form.append("file", file);
 
-      const res = await authedFetch(`${API_BASE}/pdf/upload`, { method: "POST", body: form });
+      const res = await authedFetch(`/pdf/upload`, { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
@@ -1103,7 +1122,7 @@ const VideoPage = () => {
       setLoadingDoubt(true);
 
       try {
-        const res = await authedFetch(`${API_BASE}/pdf/chat`, {
+        const res = await authedFetch(`/pdf/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pdf_id: pdfInfo.id, question: userMsg }),
@@ -1128,7 +1147,7 @@ const VideoPage = () => {
     setLoadingDoubt(true);
 
     try {
-      const res = await authedFetch(`${API_BASE}/chat`, {
+      const res = await authedFetch(`/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
