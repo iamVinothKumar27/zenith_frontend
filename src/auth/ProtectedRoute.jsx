@@ -23,5 +23,11 @@ export default function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  // ✅ Block password users until they verify email
+  const provider = user?.providerData?.[0]?.providerId || "";
+  if (provider === "password" && user.emailVerified === false) {
+    return <Navigate to="/verify-required" replace />;
+  }
+
   return children;
 }

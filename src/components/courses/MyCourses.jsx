@@ -40,18 +40,43 @@ const QuizPie = ({ percent = 0 }) => {
   );
 };
 
+const Spinner = ({ className = "" }) => (
+  <svg
+    className={`animate-spin ${className}`}
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+    />
+  </svg>
+);
+
 export default function MyCourses() {
   const { token, apiBase } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // ✅ NEW: per-course loading for Discontinue button
+  const [discontinuing, setDiscontinuing] = useState({}); // { [courseTitle]: true }
+
   const navigate = useNavigate();
 
   const discontinueCourse = async (courseTitle) => {
     if (!token) return;
+
     const ok = window.confirm(
       `Discontinue "${courseTitle}"? This will remove the course from your list and clear saved progress.`
     );
     if (!ok) return;
+
+    // ✅ show loading only for this course
+    setDiscontinuing((prev) => ({ ...(prev || {}), [courseTitle]: true }));
 
     try {
       const res = await fetch(`${apiBase}/course/state/delete`, {
@@ -62,14 +87,23 @@ export default function MyCourses() {
         },
         body: JSON.stringify({ courseTitle }),
       });
+
       const data = await res.json();
+
       if (!res.ok) {
         alert(data?.error || "Failed to discontinue course");
         return;
       }
+
       setItems((prev) => (prev || []).filter((x) => x.courseTitle !== courseTitle));
     } catch (e) {
       alert("Network error while discontinuing course");
+    } finally {
+      setDiscontinuing((prev) => {
+        const next = { ...(prev || {}) };
+        delete next[courseTitle];
+        return next;
+      });
     }
   };
 
@@ -98,7 +132,6 @@ export default function MyCourses() {
   const empty = !loading && (!items || items.length === 0);
 
   const goCourse = (c, mode) => {
-    // mode can be "start" | "resume" | "restart" (use it later if needed)
     navigate(`/course/${encodeURIComponent(c.courseTitle)}/videos`, {
       state: {
         title: c.displayTitle || c.courseTitle,
@@ -113,7 +146,9 @@ export default function MyCourses() {
       <div className="flex items-end justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text)]">My Courses</h1>
-          <p className="text-sm text-[var(--muted)]">Resume where you left off. Your progress is saved automatically.</p>
+          <p className="text-sm text-[var(--muted)]">
+            Resume where you left off. Your progress is saved automatically.
+          </p>
         </div>
         <button
           onClick={() => navigate("/")}
@@ -129,22 +164,21 @@ export default function MyCourses() {
         {empty && (
           <div className="p-6">
             <div className="text-[var(--text)] font-medium mb-1">No courses yet</div>
-            <div className="text-sm text-[var(--muted)]">Start a course from Home, and it will appear here with progress.</div>
+            <div className="text-sm text-[var(--muted)]">
+              Start a course from Home, and it will appear here with progress.
+            </div>
           </div>
         )}
 
         {!loading && !empty && (
           <div className="divide-y">
             {items.map((c) => {
-              // totalQuizzes = totalVideos (your rule)
               const totalQuizzes = Number(c.totalVideos || 0);
               const passedQuizzes = Number(c.passedQuizzes || 0);
-
               const qpct = totalQuizzes ? Math.round((passedQuizzes / totalQuizzes) * 100) : 0;
 
               const held = !!c.held;
 
-              // ✅ status based on progress
               const status = held
                 ? "On Hold"
                 : qpct >= 100
@@ -153,7 +187,6 @@ export default function MyCourses() {
                 ? "In Progress"
                 : "Not Started";
 
-              // ✅ button text based on status
               const buttonText =
                 status === "On Hold"
                   ? "On Hold"
@@ -163,14 +196,22 @@ export default function MyCourses() {
                   ? "Resume"
                   : "Start";
 
+              // ✅ fix: status check for "In Progress" (not "Doing")
               const mode =
-                status === "Completed" ? "restart" : status === "Doing" ? "resume" : "start";
+                status === "Completed" ? "restart" : status === "In Progress" ? "resume" : "start";
+
+              const isDiscontinuing = !!discontinuing?.[c.courseTitle];
 
               return (
-                <div key={c.displayTitle || c.courseTitle} className="p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div
+                  key={c.courseTitle}
+                  className="p-6 flex flex-col sm:flex-row sm:items-center gap-4"
+                >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <div className="text-lg font-semibold text-[var(--text)]">{c.displayTitle || c.courseTitle}</div>
+                      <div className="text-lg font-semibold text-[var(--text)]">
+                        {c.displayTitle || c.courseTitle}
+                      </div>
                       <Badge status={status} />
                     </div>
 
@@ -189,11 +230,17 @@ export default function MyCourses() {
                     <QuizPie percent={qpct} />
 
                     <button
-                      onClick={() => discontinueCourse(c.courseTitle || c.displayTitle)}
-                      className="px-4 py-2 rounded-xl text-sm border border-red-500/40 text-red-600 hover:bg-red-500/10"
+                      onClick={() => discontinueCourse(c.courseTitle)}
+                      disabled={isDiscontinuing}
+                      className={`px-4 py-2 rounded-xl text-sm border ${
+                        isDiscontinuing
+                          ? "border-red-500/30 text-red-600/70 cursor-not-allowed"
+                          : "border-red-500/40 text-red-600 hover:bg-red-500/10"
+                      } inline-flex items-center gap-2`}
                       title="Remove this course and clear your progress"
                     >
-                      Discontinue
+                      {isDiscontinuing && <Spinner className="w-4 h-4" />}
+                      {isDiscontinuing ? "Discontinuing..." : "Discontinue"}
                     </button>
 
                     <button

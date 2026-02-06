@@ -1,6 +1,28 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { auth, createUserWithEmailAndPassword, updateProfile, signInWithPopup, googleProvider } from "../firebase.js";
+import { auth, createUserWithEmailAndPassword, updateProfile, signInWithPopup, googleProvider, signOut } from "../firebase.js";
+
+// ✅ Multi-backend support
+const API_BASES = (import.meta.env.VITE_API_BASES || import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000")
+  .split(",")
+  .map(s => s.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+async function fetchWithFallback(path, options) {
+  let lastErr = null;
+  const p = path.startsWith("/") ? path : `/${path}`;
+  for (const base of API_BASES) {
+    try {
+      const res = await fetch(`${base}${p}`, options);
+      if (res.status < 500) return res;
+      lastErr = new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("All backends failed");
+}
+
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -19,7 +41,21 @@ export default function Signup() {
       if (name?.trim()) {
         await updateProfile(cred.user, { displayName: name.trim() });
       }
-      navigate("/");
+
+      // ✅ Send custom verification email (SMTP) from backend
+      const idToken = await cred.user.getIdToken();
+      await fetchWithFallback(`/auth/send-verification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({}),
+      });
+
+      // sign out until verified
+      await signOut(auth);
+      navigate("/check-email", { replace: true, state: { email } });
     } catch (e2) {
       setErr(e2?.message || "Signup failed");
     } finally {

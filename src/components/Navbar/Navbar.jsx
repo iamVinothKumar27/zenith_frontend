@@ -13,6 +13,7 @@ const MENU = [
   { id: 3, title: "My Courses", path: "/my-courses", authOnly: true },
   { id: 4, title: "Notes", path: "/notes", authOnly: true },
   { id: 5, title: "Profile", path: "/profile", authOnly: true },
+  { id: 6, title: "Contact", path: "/contact" },
 ];
 
 function initials(name = "") {

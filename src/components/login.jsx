@@ -58,6 +58,10 @@ export default function Login() {
           <span className="text-sm font-medium text-[var(--text)]">Continue with Google</span>
         </button>
 
+        <div className="flex justify-end mt-3">
+          <Link to="/forgot-password" className="text-xs font-medium text-blue-600 hover:underline">Forgot password?</Link>
+        </div>
+
         <div className="flex items-center gap-3 my-5">
           <div className="h-px bg-[var(--border)] flex-1" />
           <div className="text-xs text-[var(--muted)]">or</div>

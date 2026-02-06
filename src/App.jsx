@@ -13,6 +13,12 @@ import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import Services from "./pages/Services";
 import Notes from "./pages/Notes.jsx";
 import Profile from "./pages/Profile.jsx";
+import Contact from "./pages/Contact.jsx";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
+import CheckEmail from "./pages/CheckEmail.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
+import VerifyRequired from "./pages/VerifyRequired.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import AdminRoute from "./auth/AdminRoute.jsx";
 import AdminLayout from "./admin/AdminLayout.jsx";
@@ -100,6 +106,12 @@ const App = () => {
           <Route index element={<Home />} />
           <Route path="login" element={<Login />} />
           <Route path="signup" element={<Signup />} />
+          <Route path="check-email" element={<CheckEmail />} />
+          <Route path="verify-email" element={<VerifyEmail />} />
+          <Route path="verify-required" element={<VerifyRequired />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password" element={<ResetPassword />} />
+          <Route path="contact" element={<Contact />} />
           <Route
             path="my-courses"
             element={

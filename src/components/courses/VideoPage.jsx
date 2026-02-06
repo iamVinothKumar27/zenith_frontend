@@ -118,6 +118,8 @@ const VideoPage = () => {
 
   const [summary, setSummary] = useState("");
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [quizSubmitting, setQuizSubmitting] = useState(false);
+  const [exitLoading, setExitLoading] = useState(false);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [expandedWeeks, setExpandedWeeks] = useState({ 0: true });
@@ -888,6 +890,8 @@ const VideoPage = () => {
   };
 
   const calculateScore = async () => {
+    if (quizSubmitting) return;
+    setQuizSubmitting(true);
     try {
       if (!quizId) return alert("Quiz not ready yet");
       const answersList = mcqs.map((_, idx) => answers[idx] || "");
@@ -899,7 +903,7 @@ const VideoPage = () => {
       const res = await authedFetch(`/submit-quiz`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quiz_id: quizId, answers: answersList, courseTitle: courseKey }),
+        body: JSON.stringify({ quiz_id: quizId, answers: answersList, courseTitle: courseKey, video_no: currentGlobalId, total_videos: globalIdMaps.total }),
       });
 
       let data = await res.json();
@@ -994,6 +998,8 @@ const VideoPage = () => {
     } catch (e) {
       console.error(e);
       alert(e.message || "Network error while submitting quiz");
+    } finally {
+      setQuizSubmitting(false);
     }
   };
 
@@ -1216,10 +1222,19 @@ const VideoPage = () => {
           </button>
 
           <button
-            onClick={() => navigate("/")}
-            className="px-3 py-2 rounded-xl bg-[var(--accent)] text-white hover:bg-[var(--accent-2)] text-sm"
+            onClick={() => {
+              if (exitLoading) return;
+              setExitLoading(true);
+              // let spinner paint
+              setTimeout(() => navigate("/"), 50);
+            }}
+            disabled={exitLoading}
+            className="px-3 py-2 rounded-xl bg-[var(--accent)] text-white hover:bg-[var(--accent-2)] text-sm disabled:opacity-50 flex items-center gap-2"
           >
-            Exit
+            {exitLoading && (
+              <span className="inline-block w-4 h-4 rounded-full border-2 border-white/60 border-t-white animate-spin" />
+            )}
+            {exitLoading ? "Exiting..." : "Exit"}
           </button>
         </nav>
       </header>
@@ -1535,9 +1550,13 @@ const VideoPage = () => {
 
                           <button
                             onClick={calculateScore}
-                            className="mt-4 px-4 py-2 bg-[var(--accent)] text-white rounded hover:bg-[var(--accent-2)] disabled:opacity-50"
+                            disabled={quizSubmitting}
+                            className="mt-4 px-4 py-2 bg-[var(--accent)] text-white rounded hover:bg-[var(--accent-2)] disabled:opacity-50 flex items-center gap-2"
                           >
-                            Submit Quiz
+                            {quizSubmitting && (
+                              <span className="inline-block w-4 h-4 rounded-full border-2 border-white/60 border-t-white animate-spin" />
+                            )}
+                            {quizSubmitting ? "Submitting..." : "Submit Quiz"}
                           </button>
                         </>
                       ) : (
