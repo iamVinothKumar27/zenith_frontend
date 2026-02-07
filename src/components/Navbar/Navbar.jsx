@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { IoMdMenu } from "react-icons/io";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,6 +44,9 @@ function DrawerLink({ to, children, onClick }) {
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  // If the remote avatar URL fails to load (404/CORS/etc.), show initials instead of a broken image.
+  const [avatarError, setAvatarError] = useState(false);
+  const [drawerAvatarError, setDrawerAvatarError] = useState(false);
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -57,10 +60,13 @@ export default function Navbar() {
   }, [profile?.name, user?.displayName, user?.email]);
 
   const avatarUrl =
-    profile?.photoLocalURL ||
-    profile?.photoURL ||
-    user?.photoURL ||
-    "";
+    profile?.photoLocalURL || profile?.photoURL || user?.photoURL || "";
+
+  // When the user/profile changes, clear previous image error flags.
+  useEffect(() => {
+    setAvatarError(false);
+    setDrawerAvatarError(false);
+  }, [avatarUrl]);
 
   const handleLogout = async () => {
     try {
@@ -108,25 +114,23 @@ export default function Navbar() {
             <>
               <button
                 onClick={() => navigate("/profile")}
-                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90"
+                className="flex items-center gap-2 px-3 py-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90"
                 title="Profile"
               >
-                {avatarUrl ? (
+                {/* Always show avatar on all screen sizes; keep the name hidden on very small screens */}
+                {avatarUrl && !avatarError ? (
                   <img
                     src={avatarUrl}
                     alt="profile"
-                    className="w-7 h-7 rounded-full object-cover"
-                    onError={(e) => {
-                      // If image 404s in production, fall back to initials
-                      e.currentTarget.style.display = "none";
-                    }}
+                    className="w-7 h-7 rounded-full object-cover shrink-0"
+                    onError={() => setAvatarError(true)}
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-white text-xs font-bold grid place-items-center">
+                  <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-white text-xs font-bold grid place-items-center shrink-0">
                     {initials(displayName)}
                   </div>
                 )}
-                <div className="text-sm font-semibold max-w-[160px] truncate">
+                <div className="hidden sm:block text-sm font-semibold max-w-[160px] truncate">
                   {displayName || "User"}
                 </div>
               </button>
@@ -194,17 +198,15 @@ export default function Navbar() {
               {/* User card */}
               <div className="px-4 pb-3">
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-3 flex items-center gap-3">
-                  {avatarUrl ? (
+                  {avatarUrl && !drawerAvatarError ? (
                     <img
                       src={avatarUrl}
                       alt="profile"
-                      className="w-12 h-12 rounded-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
+                      className="w-12 h-12 rounded-full object-cover shrink-0"
+                      onError={() => setDrawerAvatarError(true)}
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-[var(--accent)] text-white font-bold grid place-items-center">
+                    <div className="w-12 h-12 rounded-full bg-[var(--accent)] text-white font-bold grid place-items-center shrink-0">
                       {initials(displayName)}
                     </div>
                   )}
