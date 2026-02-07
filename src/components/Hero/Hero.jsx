@@ -78,7 +78,7 @@ const Hero = () => {
             transition={{ duration: 0.6, delay: 0.4, ease: "easeInOut" }}
             src={heroPng}
             alt="hero"
-            className="w-[400px] xl:w-[600px] relative z-10 drop-shadow"
+            className="w-full max-w-[400px] xl:max-w-[600px] relative z-10 drop-shadow"
           />
         </div>
 

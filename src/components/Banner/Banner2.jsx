@@ -36,9 +36,8 @@ const Banner2 = () => {
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
             src={BannerPng}
-            style={{ background: "cover",height:"100%",width:"100%" }}
             alt=""
-            className="w-[350px] md:max-w-[450px] object-cover drop-shadow"
+            className="w-full max-w-[350px] md:max-w-[450px] h-auto object-cover drop-shadow"
           />
         </div>
       </div>

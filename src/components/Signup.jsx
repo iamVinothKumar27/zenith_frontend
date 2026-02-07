@@ -23,6 +23,56 @@ async function fetchWithFallback(path, options) {
   throw lastErr || new Error("All backends failed");
 }
 
+// ✅ Password rules helpers
+const checkPwRules = (pw) => {
+  const length = pw.length >= 6;
+  const uppercase = /[A-Z]/.test(pw);
+  const number = /[0-9]/.test(pw);
+  const special = /[^A-Za-z0-9]/.test(pw);
+  const passedCount = [length, uppercase, number, special].filter(Boolean).length;
+  return { length, uppercase, number, special, passedCount, total: 4, ok: passedCount === 4 };
+};
+
+function PasswordProgress({ password }) {
+  if (!password) return null; // ✅ show only when user starts typing
+
+  const rules = checkPwRules(password);
+  const pct = Math.round((rules.passedCount / rules.total) * 100);
+
+  const Item = ({ ok, children }) => (
+    <div className="flex items-center gap-2 text-sm">
+      <span
+        className={`inline-flex h-5 w-5 items-center justify-center rounded-full border ${
+          ok ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"
+        }`}
+      >
+        {ok ? "✓" : "×"}
+      </span>
+      <span className={`${ok ? "text-green-700" : "text-red-700"}`}>{children}</span>
+    </div>
+  );
+
+  return (
+    <div className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-semibold text-[var(--muted)]">Password strength</div>
+        <div className="text-xs font-semibold text-[var(--muted)]">{pct}%</div>
+      </div>
+
+      <div className="mt-2 h-2 w-full rounded-full bg-[var(--border)] overflow-hidden">
+        <div className="h-full bg-blue-600" style={{ width: `${pct}%` }} />
+      </div>
+
+      <div className="mt-3 space-y-2">
+        <Item ok={rules.length}>Minimum 6 characters</Item>
+        <Item ok={rules.uppercase}>At least 1 uppercase letter (A-Z)</Item>
+        <Item ok={rules.number}>At least 1 number (0-9)</Item>
+        <Item ok={rules.special}>At least 1 special character (!@#$…)</Item>
+      </div>
+    </div>
+  );
+}
+
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -35,6 +85,13 @@ export default function Signup() {
   const handleEmailSignup = async (e) => {
     e.preventDefault();
     setErr("");
+
+    const r = checkPwRules(password);
+    if (!r.ok) {
+      setErr("Password must be 6+ chars and include 1 uppercase, 1 number, and 1 special character.");
+      return;
+    }
+
     setLoading(true);
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -42,7 +99,7 @@ export default function Signup() {
         await updateProfile(cred.user, { displayName: name.trim() });
       }
 
-      // ✅ Send custom verification email (SMTP) from backend
+      // ✅ Send custom verification email from backend
       const idToken = await cred.user.getIdToken();
       await fetchWithFallback(`/auth/send-verification`, {
         method: "POST",
@@ -53,7 +110,6 @@ export default function Signup() {
         body: JSON.stringify({}),
       });
 
-      // sign out until verified
       await signOut(auth);
       navigate("/check-email", { replace: true, state: { email } });
     } catch (e2) {
@@ -136,9 +192,10 @@ export default function Signup() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-transparent text-[var(--text)] border border-[var(--border)] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[rgba(16,185,129,0.35)]"
-              placeholder="Minimum 6 characters"
+              placeholder="Min 6 chars, 1 uppercase, 1 number, 1 special"
               required
             />
+            <PasswordProgress password={password} />
           </div>
 
           <button

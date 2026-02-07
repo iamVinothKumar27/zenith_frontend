@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 // ✅ Multi-backend support (comma-separated)
 const API_BASES = (import.meta.env.VITE_API_BASES || import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000")
@@ -30,6 +31,16 @@ export default function Contact() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+
+  const location = useLocation();
+  const prefillEmail = useMemo(() => {
+    const sp = new URLSearchParams(location.search);
+    return (sp.get("email") || "").trim();
+  }, [location.search]);
+
+  useEffect(() => {
+    if (prefillEmail) setEmail(prefillEmail);
+  }, [prefillEmail]);
 
   const submit = async (e) => {
     e.preventDefault();

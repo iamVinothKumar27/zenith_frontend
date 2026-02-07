@@ -64,6 +64,18 @@
   body {
     background: var(--bg);
     color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* Prevent media from causing horizontal overflow */
+  img, video, canvas, svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Flex/Grid overflow guard */
+  * {
+    min-width: 0;
   }
 }
 
