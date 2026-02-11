@@ -30,29 +30,33 @@ import AdminQuizPerformance from "./admin/pages/AdminQuizPerformance.jsx";
 import { useAuth } from "./auth/AuthProvider.jsx";
 
 function RoleRedirector() {
-  const { profile, loading } = useAuth();
+  const { user, loading } = useAuth();
+  const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || "admin@zenithlearning.site").toLowerCase();
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (loading) return;
-    const role = profile?.role;
+
+    const email = (user?.email || "").toLowerCase();
+    const isAdmin = !!email && email === ADMIN_EMAIL;
     const path = location.pathname || "/";
 
-    // ✅ If you are admin, always land on /admin (unless you're already there)
-    if (role === "admin" && !path.startsWith("/admin")) {
+    // ✅ If admin, always land on /admin (unless already there)
+    if (isAdmin && !path.startsWith("/admin")) {
       navigate("/admin", { replace: true });
       return;
     }
 
-    // If not admin, block /admin
-    if (role !== "admin" && path.startsWith("/admin")) {
+    // ✅ If not admin, block /admin routes
+    if (!isAdmin && path.startsWith("/admin")) {
       navigate("/", { replace: true });
     }
-  }, [profile, loading, location.pathname, navigate]);
+  }, [user, loading, location.pathname, navigate]);
 
   return null;
 }
+
 
 
 const App = () => {

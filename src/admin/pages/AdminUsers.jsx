@@ -7,14 +7,17 @@ function Chip({ children, tone = "gray" }) {
   const map = {
     gray: "bg-gray-100 text-[var(--muted)] border-[var(--border)]",
     green: "bg-green-100 text-green-700 border-green-200",
-    blue: "bg-blue-100 text-blue-700 border-blue-200",
     amber: "bg-amber-100 text-amber-700 border-amber-200",
   };
-  return <span className={`inline-flex items-center px-2 py-0.5 text-xs border rounded-full ${map[tone] || map.gray}`}>{children}</span>;
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 text-xs border rounded-full ${map[tone] || map.gray}`}>
+      {children}
+    </span>
+  );
 }
 
 export default function AdminUsers() {
-  const { token, apiBase, profile } = useAuth();
+  const { token, apiBase, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [users, setUsers] = useState([]);
@@ -48,15 +51,12 @@ export default function AdminUsers() {
     return users.filter((u) => (u.email || "").toLowerCase().includes(q) || (u.name || "").toLowerCase().includes(q));
   }, [users, query]);
 
-  // Totals (overall + for learners)
   const stats = useMemo(() => {
     const total = filtered.length;
-    const admins = filtered.filter((u) => u.role === "admin").length;
-    const learners = filtered.filter((u) => u.role !== "admin");
-    const coursesTracked = learners.reduce((a, u) => a + (u.courses?.length || 0), 0);
-    const avgPass = learners.length
-      ? Math.round(learners.reduce((a, u) => a + Number(u.overallPercent || 0), 0) / learners.length)
-      : 0;
+    const admins = filtered.filter((u) => !!u.isAdmin).length;
+    const learners = filtered.filter((u) => !u.isAdmin);
+    const coursesTracked = learners.reduce((acc, u) => acc + (u.courses?.length || 0), 0);
+    const avgPass = learners.length ? Math.round(learners.reduce((acc, u) => acc + (u.overallPercent || 0), 0) / learners.length) : 0;
     return { total, admins, coursesTracked, avgPass };
   }, [filtered]);
 
@@ -70,30 +70,6 @@ export default function AdminUsers() {
     const j = await res.json();
     if (!res.ok) throw new Error(j?.error || "Request failed");
     return j;
-  };
-
-  const promote = async (uid) => {
-    setBusy(uid);
-    try {
-      await call("/admin/promote", { uid });
-      await fetchUsers();
-    } catch (e) {
-      setError(e?.message || "Error");
-    } finally {
-      setBusy("");
-    }
-  };
-
-  const demote = async (uid) => {
-    setBusy(uid);
-    try {
-      await call("/admin/demote", { uid });
-      await fetchUsers();
-    } catch (e) {
-      setError(e?.message || "Error");
-    } finally {
-      setBusy("");
-    }
   };
 
   const del = async (uid) => {
@@ -122,12 +98,14 @@ export default function AdminUsers() {
     }
   };
 
+  const selfUid = user?.uid;
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text)]">Users</h1>
-          <p className="text-sm text-[var(--muted)]">Promote/demote admins, hold courses, or delete users.</p>
+          <p className="text-sm text-[var(--muted)]">Hold courses or delete users. Admin is fixed to admin@zenithlearning.site.</p>
         </div>
         <div className="flex items-center gap-2">
           <input
@@ -175,12 +153,12 @@ export default function AdminUsers() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="font-semibold text-[var(--text)] truncate max-w-[420px]">{u.name || "(no name)"}</div>
-                  <Chip tone={u.role === "admin" ? "green" : "gray"}>{u.role || "user"}</Chip>
+                  <Chip tone={u.isAdmin ? "green" : "gray"}>{u.isAdmin ? "admin" : "user"}</Chip>
                   {(u.heldCourses?.length || 0) > 0 && <Chip tone="amber">{u.heldCourses.length} held</Chip>}
                 </div>
                 <div className="text-sm text-[var(--muted)] truncate">{u.email || ""}</div>
 
-                {u.courses?.length ? (
+                {!u.isAdmin && (u.courses?.length ? (
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                     {u.courses.map((c) => (
                       <div key={c.courseKey} className="rounded-xl border p-4">
@@ -207,11 +185,11 @@ export default function AdminUsers() {
                   </div>
                 ) : (
                   <div className="mt-3 text-sm text-[var(--muted)]">No courses yet.</div>
-                )}
+                ))}
               </div>
 
               <div className="flex items-center gap-3 shrink-0 justify-between lg:justify-end">
-                {u.role !== "admin" ? (
+                {!u.isAdmin ? (
                   <div className="flex items-center gap-3">
                     <Donut percent={u.overallPercent || 0} />
                     <div className="text-xs text-[var(--muted)]">
@@ -222,36 +200,15 @@ export default function AdminUsers() {
                 ) : (
                   <div className="text-xs text-[var(--muted)]">Admin account</div>
                 )}
-                <div className="flex items-center gap-2">
-                  {u.role === "admin" ? (
-                    <button
-                      onClick={() => demote(u.uid)}
-                      disabled={busy === u.uid || profile?.uid === u.uid}
-                      className="px-3 py-2 rounded-xl border text-sm hover:bg-[var(--surface)] disabled:opacity-50"
-                      title={profile?.uid === u.uid ? "You cannot demote yourself" : "Demote to user"}
-                    >
-                      {busy === u.uid ? "Working…" : "Demote"}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => promote(u.uid)}
-                      disabled={busy === u.uid}
-                      className="px-3 py-2 rounded-xl bg-black text-white text-sm hover:opacity-90 disabled:opacity-50"
-                      title="Promote to admin"
-                    >
-                      {busy === u.uid ? "Working…" : "Promote"}
-                    </button>
-                  )}
 
-                  <button
-                    onClick={() => del(u.uid)}
-                    disabled={busy === u.uid || profile?.uid === u.uid}
-                    className="px-3 py-2 rounded-xl border border-red-200 text-red-700 text-sm hover:bg-red-50 disabled:opacity-50"
-                    title={profile?.uid === u.uid ? "You cannot delete yourself" : "Delete user"}
-                  >
-                    {busy === u.uid ? "…" : "Delete"}
-                  </button>
-                </div>
+                <button
+                  onClick={() => del(u.uid)}
+                  disabled={busy === u.uid || selfUid === u.uid}
+                  className="px-3 py-2 rounded-xl border border-red-200 text-red-700 text-sm hover:bg-red-50 disabled:opacity-50"
+                  title={selfUid === u.uid ? "You cannot delete yourself" : "Delete user"}
+                >
+                  {busy === u.uid ? "…" : "Delete"}
+                </button>
               </div>
             </motion.div>
           ))}

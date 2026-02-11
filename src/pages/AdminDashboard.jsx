@@ -153,7 +153,7 @@ export default function AdminDashboard() {
                   <div className="font-semibold text-gray-900 truncate">{u.name || "(no name)"}</div>
                   <div className="text-sm text-gray-600 truncate">{u.email || ""}</div>
                   <div className="mt-2 text-sm text-gray-500">
-                    Role: <span className="font-medium text-gray-800">{u.role || "user"}</span>
+                    Role: <span className="font-medium text-gray-800">{u.isAdmin ? "admin" : "user"}</span>
                     <span className="mx-2">•</span>
                     Courses: <span className="font-medium text-gray-800">{u.courses?.length || 0}</span>
                   </div>
@@ -174,7 +174,7 @@ export default function AdminDashboard() {
 
                 <div className="flex items-center gap-4 shrink-0">
                   <div className="flex flex-col items-end gap-2">
-                    {u.role === "admin" ? (
+                    {u.isAdmin ? (
                       <button
                         onClick={() => demote(u.uid)}
                         disabled={busyUid === u.uid || profile?.uid === u.uid}

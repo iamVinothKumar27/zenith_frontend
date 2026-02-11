@@ -5,10 +5,11 @@ import { useAuth } from "./AuthProvider.jsx";
 /**
  * Blocks routes unless the user is an admin.
  * - Requires Firebase login (user)
- * - Requires Mongo profile.role === 'admin'
+ * - Requires user.email === ADMIN_EMAIL
  */
 export default function AdminRoute({ children }) {
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
+  const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || "admin@zenithlearning.site").toLowerCase();
   const location = useLocation();
 
   if (loading) {
@@ -21,8 +22,8 @@ export default function AdminRoute({ children }) {
 
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
 
-  // If profile isn't loaded (backend down, or sync failed), treat as non-admin.
-  if (!profile || profile.role !== "admin") {
+    const isAdmin = (user?.email || "").toLowerCase() === ADMIN_EMAIL;
+  if (!isAdmin) {
     return <Navigate to="/" replace />;
   }
 

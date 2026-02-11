@@ -39,8 +39,8 @@ export default function AdminOverview() {
 
   const totals = useMemo(() => {
     const totalUsers = users.length;
-    const admins = users.filter((u) => u.role === "admin").length;
-    const learners = users.filter((u) => u.role !== "admin");
+    const admins = users.filter((u) => u.isAdmin).length;
+    const learners = users.filter((u) => !u.isAdmin);
     const totalCoursesTracked = learners.reduce((a, u) => a + (u.courses?.length || 0), 0);
     const heldCourses = learners.reduce((a, u) => a + (u.heldCourses?.length || 0), 0);
     return { totalUsers, totalCoursesTracked, admins, heldCourses };
@@ -111,12 +111,12 @@ export default function AdminOverview() {
             </div>
           </div>
           <div className="flex flex-wrap gap-6">
-            {(users || []).filter((u) => u.role !== "admin").slice(0, 6).map((u) => (
+            {(users || []).filter((u) => !u.isAdmin).slice(0, 6).map((u) => (
               <div key={u.uid} className="flex items-center gap-3">
                 <Donut percent={u.overallPercent || 0} />
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-[var(--text)] truncate max-w-[180px]">{u.name || u.email}</div>
-                  <div className="text-xs text-[var(--muted)]">{u.role || "user"}</div>
+                  <div className="text-xs text-[var(--muted)]">{u.isAdmin ? "admin" : "user"}</div>
                 </div>
               </div>
             ))}
