@@ -328,10 +328,35 @@ const VideoPage = () => {
     if (Array.isArray(savedCourse)) setCourseMessages(savedCourse);
     if (Array.isArray(savedPdfList)) setPdfList(savedPdfList);
     if (savedActivePdf) setActivePdfId(savedActivePdf);
+
+    // ✅ DB is source of truth for PDFs list per-course (supports multiple PDFs + switching)
+    const loadPdfListFromDb = async () => {
+      try {
+        const res = await authedFetch(`/pdf/list?courseTitle=${encodeURIComponent(courseKey)}`, { method: "GET" });
+        const data = await res.json();
+        if (res.ok && data && Array.isArray(data.pdfs)) {
+          const dbList = data.pdfs;
+          setPdfList(dbList);
+
+          // pick a valid active PDF (restore saved if still exists)
+          const desired = savedActivePdf;
+          const nextActive =
+            desired && dbList.some((p) => p.id === desired) ? desired : (dbList[0]?.id || null);
+
+          setActivePdfId(nextActive);
+          if (!nextActive && chatMode === "pdf") setChatMode("course");
+        }
+      } catch (e) {
+        // keep local cache if DB fails
+      }
+    };
+
+    loadPdfListFromDb();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseKey]);
-
-  useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMessages, courseKey]);
+useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMessages, courseKey]);
+  useEffect(() => writeLS(_lsKeyPdfList(courseKey), pdfList), [pdfList, courseKey]);
+  useEffect(() => writeLS(_lsKeyActivePdf(courseKey), activePdfId), [activePdfId, courseKey]);
   // ✅ scroll to bottom when messages change (only if open)
   useEffect(() => {
     if (!chatOpen) return;
@@ -1193,25 +1218,71 @@ const VideoPage = () => {
     return out;
   };
 
-  const removePdf = () => {
+  
+  const removePdf = async () => {
     if (!activePdfId) return;
     const removeId = activePdfId;
 
-    setPdfChats((prev) => {
-      const next = { ...prev };
-      delete next[removeId];
-      return next;
-    });
-    hydratedPdfChatRef.current[removeId] = false;
+    // optional confirm
+    const ok = window.confirm("Remove this PDF from the course? This will delete the PDF and its PDF-chat history from the database.");
+    if (!ok) return;
 
-    setPdfList((prev) => {
-      const remaining = prev.filter((p) => p.id !== removeId);
-      const nextActive = remaining.length ? remaining[0].id : null;
-      setActivePdfId(nextActive);
-      if (!nextActive) setChatMode("course");
-      return remaining;
-    });
+    try {
+      const res = await authedFetch(`/pdf/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pdf_id: removeId, courseTitle: courseKey }),
+      });
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok) {
+        alert(data?.error || "Failed to delete PDF from database");
+        return;
+      }
+
+      // Clear local per-PDF conversation id so it won't re-hydrate
+      try {
+        localStorage.removeItem(_lsKeyPdfConvo(courseKey, removeId));
+      } catch {}
+
+      // Remove from UI state
+      setPdfChats((prev) => {
+        const next = { ...prev };
+        delete next[removeId];
+        return next;
+      });
+      hydratedPdfChatRef.current[removeId] = false;
+
+      setPdfList((prev) => {
+        const remaining = prev.filter((p) => p.id !== removeId);
+        const nextActive = remaining.length ? remaining[0].id : null;
+        setActivePdfId(nextActive);
+        if (!nextActive) setChatMode("course");
+        return remaining;
+      });
+
+      // Re-sync list from DB (source of truth)
+      try {
+        const r2 = await authedFetch(`/pdf/list?courseTitle=${encodeURIComponent(courseKey)}`, { method: "GET" });
+        const d2 = await r2.json();
+        if (r2.ok && d2 && Array.isArray(d2.pdfs)) {
+          setPdfList(d2.pdfs);
+          const nextActive = d2.pdfs[0]?.id || null;
+          setActivePdfId((prevActive) => (prevActive && d2.pdfs.some((p) => p.id === prevActive) ? prevActive : nextActive));
+          if (!nextActive && chatMode === "pdf") setChatMode("course");
+        }
+      } catch {}
+    } catch (e) {
+      alert("Network error while deleting PDF");
+    }
   };
+
 
   const deletePair = async (pairIndex) => {
     try {
