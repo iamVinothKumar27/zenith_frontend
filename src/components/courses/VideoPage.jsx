@@ -283,7 +283,7 @@ const VideoPage = () => {
   const writeLS = (key, value) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch {}
+    } catch { }
   };
 
   const getQuizCacheObj = () => readLS(QUIZ_CACHE_KEY, {});
@@ -392,13 +392,13 @@ const VideoPage = () => {
   useEffect(() => {
     try {
       localStorage.setItem("zenith_left_width_px_v1", String(leftWidth));
-    } catch {}
+    } catch { }
   }, [leftWidth]);
 
   useEffect(() => {
     try {
       localStorage.setItem("zenith_right_width_px_v1", String(rightWidth));
-    } catch {}
+    } catch { }
   }, [rightWidth]);
 
   // ✅ global mouse move/up for resizing
@@ -514,7 +514,7 @@ const VideoPage = () => {
       if (saved.quizPassedMap && typeof saved.quizPassedMap === "object") setQuizPassedMap(saved.quizPassedMap);
       if (saved.quizSubmittedMap && typeof saved.quizSubmittedMap === "object") setQuizSubmittedMap(saved.quizSubmittedMap);
       if (saved.quizCompletedMap && typeof saved.quizCompletedMap === "object") setQuizCompletedMap(saved.quizCompletedMap);
-    } catch {}
+    } catch { }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [globalIdMaps.total]);
 
@@ -584,7 +584,7 @@ const VideoPage = () => {
 
       try {
         localStorage.setItem(getProgressLSKey(), JSON.stringify(payload));
-      } catch {}
+      } catch { }
 
       await authedFetch(`/course/progress/save`, {
         method: "POST",
@@ -609,7 +609,7 @@ const VideoPage = () => {
         quizCompletedMap,
       };
       localStorage.setItem(getProgressLSKey(), JSON.stringify(payload));
-    } catch {}
+    } catch { }
 
     if (!hydratedFromDBRef.current) return;
     if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
@@ -711,7 +711,7 @@ const VideoPage = () => {
   useEffect(() => {
     try {
       if (mindmapAbortRef.current) mindmapAbortRef.current.abort();
-    } catch {}
+    } catch { }
     setShowMindmap(false);
     setMindmapTree(null);
     setMindmapError("");
@@ -831,7 +831,7 @@ const VideoPage = () => {
     try {
       try {
         if (mindmapAbortRef.current) mindmapAbortRef.current.abort();
-      } catch {}
+      } catch { }
       const ac = new AbortController();
       mindmapAbortRef.current = ac;
 
@@ -1230,9 +1230,9 @@ const VideoPage = () => {
         });
         const data = await res.json();
         if (res.ok && Array.isArray(data.history)) {
-            const pid = activePdfId;
-            setPdfChats((prev) => ({ ...prev, [pid]: data.history }));
-          }
+          const pid = activePdfId;
+          setPdfChats((prev) => ({ ...prev, [pid]: data.history }));
+        }
       } else {
         const convoId = getCourseConversationId();
         const res = await authedFetch(`/chat/history/pair`, {
@@ -1498,13 +1498,12 @@ const VideoPage = () => {
                                     <button
                                       key={videoIndex}
                                       onClick={() => selectVideo(weekIndex, videoIndex)}
-                                      className={`w-full text-left p-2 rounded text-sm flex items-center gap-2 ${
-                                        currentWeek === weekIndex && currentVideo === videoIndex
+                                      className={`w-full text-left p-2 rounded text-sm flex items-center gap-2 ${currentWeek === weekIndex && currentVideo === videoIndex
                                           ? "bg-[var(--accent)]"
                                           : unlocked
-                                          ? "hover:bg-slate-600"
-                                          : "opacity-50 cursor-not-allowed"
-                                      }`}
+                                            ? "hover:bg-slate-600"
+                                            : "opacity-50 cursor-not-allowed"
+                                        }`}
                                       title={
                                         unlocked
                                           ? passed
@@ -1550,9 +1549,8 @@ const VideoPage = () => {
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-[var(--muted)]">Status</span>
                   <span
-                    className={`text-xs px-3 py-1 rounded-full ${
-                      isQuizPassedForCurrent ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"
-                    }`}
+                    className={`text-xs px-3 py-1 rounded-full ${isQuizPassedForCurrent ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"
+                      }`}
                   >
                     {isQuizPassedForCurrent ? "Quiz Passed" : "Quiz Pending"}
                   </span>
@@ -1603,11 +1601,10 @@ const VideoPage = () => {
                   onClick={handleQuiz}
                   disabled={isQuizButtonDisabled}
                   title={quizButtonTitle}
-                  className={`px-6 py-2 rounded-lg ${
-                    isQuizButtonDisabled
+                  className={`px-6 py-2 rounded-lg ${isQuizButtonDisabled
                       ? "bg-[var(--border)] text-[var(--muted)] cursor-not-allowed"
                       : "bg-[var(--accent)] text-white hover:brightness-95"
-                  }`}
+                    }`}
                 >
                   Quiz {isQuizPassedForCurrent ? "(Passed)" : ""}
                 </button>
@@ -1641,9 +1638,8 @@ const VideoPage = () => {
                       <button
                         onClick={handleSaveMindmapToNotes}
                         disabled={!mindmapTree || loadingMindmap}
-                        className={`px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:brightness-95 ${
-                          !mindmapTree || loadingMindmap ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
+                        className={`px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:brightness-95 ${!mindmapTree || loadingMindmap ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
                       >
                         Save to Notes
                       </button>
@@ -1687,15 +1683,14 @@ const VideoPage = () => {
                     <div className="mt-4">
                       {score !== null ? (
                         <p
-                          className={`font-semibold text-lg ${
-                            requiredMark !== null
+                          className={`font-semibold text-lg ${requiredMark !== null
                               ? score >= requiredMark
                                 ? "text-green-700"
                                 : "text-red-700"
                               : score / (mcqs.length || 10) >= PASS_PERCENT
-                              ? "text-green-700"
-                              : "text-red-700"
-                          }`}
+                                ? "text-green-700"
+                                : "text-red-700"
+                            }`}
                         >
                           Score: {score}/{mcqs.length}{" "}
                           {requiredMark !== null
@@ -1703,8 +1698,8 @@ const VideoPage = () => {
                               ? "✅ PASSED"
                               : "❌ NOT PASSED"
                             : score / (mcqs.length || 10) >= PASS_PERCENT
-                            ? "✅ PASSED"
-                            : "❌ NOT PASSED"}
+                              ? "✅ PASSED"
+                              : "❌ NOT PASSED"}
                         </p>
                       ) : (
                         <p className="text-[var(--muted)]">Score not available</p>
@@ -1804,82 +1799,105 @@ const VideoPage = () => {
             >
               {/* Header */}
               <div className="p-4 border-b border-[var(--border)] bg-[var(--card)] flex items-start justify-between gap-3">
+                {/* LEFT SIDE */}
                 <div className="flex-1">
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col gap-2">
                     <h3 className="text-lg font-semibold">Chat</h3>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setChatMode("course")}
-                        className={`text-xs px-3 py-1 rounded-full border border-[var(--border)] ${
-                          chatMode === "course" ? "bg-[var(--accent)] text-white" : "bg-[var(--bg)]"
-                        }`}
-                        title="Normal chat"
-                      >
-                        Normal
-                      </button>
-                      <button
-                        onClick={() => activePdfId && setChatMode("pdf")}
-                        disabled={!activePdfId}
-                        className={`text-xs px-3 py-1 rounded-full border border-[var(--border)] disabled:opacity-50 ${
-                          chatMode === "pdf" ? "bg-[var(--accent)] text-white" : "bg-[var(--bg)]"
-                        }`}
-                        title={activePdfId ? "PDF chat" : "Upload a PDF to enable"}
-                      >
-                        PDF
-                      </button>
+                    {/* Tabs row (next line) */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setChatMode("course")}
+                          className={`text-xs px-3 py-1 rounded-full border border-[var(--border)] ${chatMode === "course" ? "bg-[var(--accent)] text-white" : "bg-[var(--bg)]"
+                            }`}
+                          title="Normal chat"
+                        >
+                          Normal
+                        </button>
 
-                      {activePdfId && (
+                        <button
+                          onClick={() => setChatMode("pdf")}
+                          disabled={!activePdfId}
+                          className={`text-xs px-3 py-1 rounded-full border border-[var(--border)] ${chatMode === "pdf" ? "bg-[var(--accent)] text-white" : "bg-[var(--bg)]"
+                            } ${!activePdfId ? "opacity-50 cursor-not-allowed" : ""}`}
+                          title={activePdfId ? "PDF chat" : "Upload a PDF to enable"}
+                        >
+                          PDF
+                        </button>
+                      </div>
+
+                      {chatMode === "pdf" && activePdfId && (
                         <button
                           onClick={removePdf}
                           className="text-xs px-3 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:opacity-90"
-                          title="Remove PDF"
+                          title="Remove selected PDF"
                         >
                           Remove PDF
                         </button>
                       )}
                     </div>
+
+                    {/* PDF controls should NOT show in Normal tab */}
+                    {chatMode === "pdf" && (
+                      <>
+                        {pdfList.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-[var(--muted)]">PDF:</span>
+
+                            <select
+                              value={activePdfId || ""}
+                              onChange={(e) => setActivePdfId(e.target.value || null)}
+                              className="text-xs px-2 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] flex-1"
+                              title="Select a PDF"
+                            >
+                              <option value="" disabled>
+                                Select PDF
+                              </option>
+                              {pdfList.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+
+                            <button
+                              onClick={() => pdfInputRef.current?.click()}
+                              className="text-xs px-3 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:opacity-90"
+                              title="Upload another PDF"
+                            >
+                              + Upload
+                            </button>
+                          </div>
+                        )}
+
+                        {pdfList.length === 0 && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => pdfInputRef.current?.click()}
+                              className="text-xs px-3 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:opacity-90"
+                              title="Upload PDF"
+                            >
+                              + Upload
+                            </button>
+                            <span className="text-[11px] text-[var(--muted)]">Upload a PDF to start PDF chat</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* helper text */}
+                    <p className="text-xs text-[var(--muted)] mt-1">
+                      {chatMode === "pdf"
+                        ? activePdfId
+                          ? `PDF: ${activePdf?.name || "Loaded"}`
+                          : "Upload a PDF to chat with it."
+                        : "Ask doubts about this course"}
+                    </p>
                   </div>
-
-                  {pdfList.length > 0 && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="text-[11px] text-[var(--muted)]">PDF:</span>
-                      <select
-                        value={activePdfId || ""}
-                        onChange={(e) => {
-                          const id = e.target.value || null;
-                          setActivePdfId(id);
-                          if (id) setChatMode("pdf");
-                        }}
-                        className="text-xs px-2 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] max-w-[260px]"
-                      >
-                        {pdfList.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => {
-                          if (pdfInputRef.current) pdfInputRef.current.click();
-                        }}
-                        className="text-xs px-3 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:opacity-90"
-                        title="Upload another PDF"
-                      >
-                        + Upload
-                      </button>
-                    </div>
-                  )}
-
-                  <p className="text-xs text-[var(--muted)] mt-1">
-                    {chatMode === "pdf"
-                      ? activePdfId
-                        ? `PDF: ${activePdf?.name || "Loaded"}`
-                        : "Upload a PDF to chat with it."
-                      : "Ask doubts about this course"}
-                  </p>
                 </div>
 
+                {/* RIGHT SIDE (Close button) */}
                 <button
                   onClick={() => setChatOpen(false)}
                   className="px-3 py-1 rounded-xl bg-[var(--bg)] hover:opacity-90 border border-[var(--border)]"
@@ -1888,6 +1906,7 @@ const VideoPage = () => {
                   ✕
                 </button>
               </div>
+
 
               {/* Messages */}
               <div className="flex-1 p-4 overflow-y-auto bg-[var(--chat-bg)]">
@@ -1954,7 +1973,7 @@ const VideoPage = () => {
                                   </button>
                                 </div>
                               </div>
-{blocks.map((b, i) => {
+                              {blocks.map((b, i) => {
                                 if (b.type === "code") {
                                   return (
                                     <div key={i} className="mt-3">
