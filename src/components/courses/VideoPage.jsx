@@ -17,7 +17,8 @@ const QUIZ_COOLDOWN_MS = 15000; // 15 seconds
 const CHAT_ID_KEY = "zenith_chat_conversation_id_v1";
 const CHAT_MESSAGES_COURSE_KEY = "zenith_chat_course_messages_v1";
 const CHAT_MESSAGES_PDF_KEY = "zenith_chat_pdf_messages_v1";
-const PDF_INFO_KEY = "zenith_chat_pdf_info_v1";
+const PDF_LIST_KEY = "zenith_chat_pdf_list_v1"; // per-course: [{id,name}]
+const ACTIVE_PDF_KEY = "zenith_chat_active_pdf_v1"; // per-course: pdf_id
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
@@ -148,13 +149,22 @@ const VideoPage = () => {
 
   // Course + PDF message histories (kept separate internally)
   const [courseMessages, setCourseMessages] = useState([]);
-  const [pdfMessages, setPdfMessages] = useState([]);
-  const [pdfInfo, setPdfInfo] = useState(null); // { id, name }
+  const [pdfList, setPdfList] = useState([]); // [{id,name}]
+  const [activePdfId, setActivePdfId] = useState(null);
+  const [pdfChats, setPdfChats] = useState({}); // pdf_id -> messages[] // { id, name }
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const pdfInputRef = useRef(null);
 
   // ✅ User-switchable chat mode (like ChatGPT: Normal vs PDF)
   const [chatMode, setChatMode] = useState("course"); // "course" | "pdf"
+
+  // If we have PDFs but none selected (e.g., after refresh), auto-select the first one
+  useEffect(() => {
+    if (pdfList.length > 0 && !activePdfId) {
+      setActivePdfId(pdfList[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pdfList]);
 
   const [doubtText, setDoubtText] = useState("");
   const [loadingDoubt, setLoadingDoubt] = useState(false);
@@ -196,12 +206,26 @@ const VideoPage = () => {
 
   // If no PDF is loaded, force course mode
   useEffect(() => {
-    if (!pdfInfo?.id && chatMode !== "course") setChatMode("course");
+    if (!activePdfId && chatMode !== "course") setChatMode("course");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pdfInfo?.id]);
+  }, [activePdfId]);
 
-  const messages = chatMode === "pdf" ? pdfMessages : courseMessages;
-  const setMessages = chatMode === "pdf" ? setPdfMessages : setCourseMessages;
+  const activePdf = useMemo(() => pdfList.find((p) => p.id === activePdfId) || null, [pdfList, activePdfId]);
+
+  const messages = chatMode === "pdf" ? (activePdfId ? (pdfChats[activePdfId] || []) : []) : courseMessages;
+
+  const setMessages = (updater) => {
+    if (chatMode !== "pdf") {
+      setCourseMessages(updater);
+      return;
+    }
+    if (!activePdfId) return;
+    setPdfChats((prev) => {
+      const cur = prev[activePdfId] || [];
+      const next = typeof updater === "function" ? updater(cur) : updater;
+      return { ...prev, [activePdfId]: next };
+    });
+  };
 
   // ---------------- Auth fetch ----------------
   const authedFetch = async (path, options = {}) => {
@@ -272,8 +296,8 @@ const VideoPage = () => {
   const _lsKeyCourseConvo = (ck) => `${CHAT_ID_KEY}::course::${encodeURIComponent(ck || "Course")}`;
   const _lsKeyPdfConvo = (ck, pdfId) => `${CHAT_ID_KEY}::pdf::${encodeURIComponent(ck || "Course")}::${pdfId || ""}`;
   const _lsKeyCourseMsgs = (ck) => `${CHAT_MESSAGES_COURSE_KEY}::${encodeURIComponent(ck || "Course")}`;
-  const _lsKeyPdfMsgs = (ck) => `${CHAT_MESSAGES_PDF_KEY}::${encodeURIComponent(ck || "Course")}`;
-  const _lsKeyPdfInfo = (ck) => `${PDF_INFO_KEY}::${encodeURIComponent(ck || "Course")}`;
+  const _lsKeyPdfList = (ck) => `${PDF_LIST_KEY}::${encodeURIComponent(ck || "Course")}`;
+  const _lsKeyActivePdf = (ck) => `${ACTIVE_PDF_KEY}::${encodeURIComponent(ck || "Course")}`;
 
   const getCourseConversationId = () => {
     const k = _lsKeyCourseConvo(courseKey);
@@ -298,26 +322,23 @@ const VideoPage = () => {
   // ✅ chat: small local cache per-course (DB is source of truth)
   useEffect(() => {
     const savedCourse = readLS(_lsKeyCourseMsgs(courseKey), []);
-    const savedPdf = readLS(_lsKeyPdfMsgs(courseKey), []);
-    const savedPdfInfo = readLS(_lsKeyPdfInfo(courseKey), null);
+    const savedPdfList = readLS(_lsKeyPdfList(courseKey), []);
+    const savedActivePdf = readLS(_lsKeyActivePdf(courseKey), null);
 
     if (Array.isArray(savedCourse)) setCourseMessages(savedCourse);
-    if (Array.isArray(savedPdf)) setPdfMessages(savedPdf);
-    if (savedPdfInfo && savedPdfInfo.id) setPdfInfo(savedPdfInfo);
+    if (Array.isArray(savedPdfList)) setPdfList(savedPdfList);
+    if (savedActivePdf) setActivePdfId(savedActivePdf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseKey]);
 
   useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMessages, courseKey]);
-  useEffect(() => writeLS(_lsKeyPdfMsgs(courseKey), pdfMessages), [pdfMessages, courseKey]);
-  useEffect(() => writeLS(_lsKeyPdfInfo(courseKey), pdfInfo), [pdfInfo, courseKey]);
-
   // ✅ scroll to bottom when messages change (only if open)
   useEffect(() => {
     if (!chatOpen) return;
     setTimeout(() => {
       chatScrollRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 50);
-  }, [courseMessages, pdfMessages, loadingDoubt, chatOpen, pdfInfo?.id]);
+  }, [courseMessages, pdfChats, loadingDoubt, chatOpen, activePdfId]);
 
   // ✅ Load chat history from DB when chat opens (source of truth)
   useEffect(() => {
@@ -342,7 +363,7 @@ const VideoPage = () => {
     };
 
     const loadPdfHistory = async () => {
-      const pid = pdfInfo?.id;
+      const pid = activePdfId;
       if (!pid) return;
       if (hydratedPdfChatRef.current[pid]) return;
       try {
@@ -353,7 +374,7 @@ const VideoPage = () => {
         );
         const data = await res.json();
         if (res.ok && Array.isArray(data.history)) {
-          setPdfMessages(data.history);
+          setPdfChats((prev) => ({ ...prev, [pid]: data.history }));
           hydratedPdfChatRef.current[pid] = true;
         }
       } catch (e) {
@@ -363,9 +384,9 @@ const VideoPage = () => {
 
     // Always hydrate course chat; and hydrate PDF chat if a PDF is loaded
     loadCourseHistory();
-    if (pdfInfo?.id) loadPdfHistory();
+    if (activePdfId) loadPdfHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatOpen, pdfInfo?.id, courseKey]);
+  }, [chatOpen, activePdfId, courseKey]);
 
   // ✅ persist widths
   useEffect(() => {
@@ -1173,29 +1194,45 @@ const VideoPage = () => {
   };
 
   const removePdf = () => {
-    setPdfInfo(null);
-    setPdfMessages([]);
-    hydratedPdfChatRef.current = {};
-    setChatMode("course");
+    if (!activePdfId) return;
+    const removeId = activePdfId;
+
+    setPdfChats((prev) => {
+      const next = { ...prev };
+      delete next[removeId];
+      return next;
+    });
+    hydratedPdfChatRef.current[removeId] = false;
+
+    setPdfList((prev) => {
+      const remaining = prev.filter((p) => p.id !== removeId);
+      const nextActive = remaining.length ? remaining[0].id : null;
+      setActivePdfId(nextActive);
+      if (!nextActive) setChatMode("course");
+      return remaining;
+    });
   };
 
   const deletePair = async (pairIndex) => {
     try {
       if (chatMode === "pdf") {
-        if (!pdfInfo?.id) return;
-        const convoId = getPdfConversationId(pdfInfo.id);
+        if (!activePdfId) return;
+        const convoId = getPdfConversationId(activePdfId);
         const res = await authedFetch(`/pdf/chat/history/pair`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            pdf_id: pdfInfo.id,
+            pdf_id: activePdfId,
             conversation_id: convoId,
             courseTitle: courseKey,
             pair_index: pairIndex,
           }),
         });
         const data = await res.json();
-        if (res.ok && Array.isArray(data.history)) setPdfMessages(data.history);
+        if (res.ok && Array.isArray(data.history)) {
+            const pid = activePdfId;
+            setPdfChats((prev) => ({ ...prev, [pid]: data.history }));
+          }
       } else {
         const convoId = getCourseConversationId();
         const res = await authedFetch(`/chat/history/pair`, {
@@ -1233,7 +1270,12 @@ const VideoPage = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
-      setPdfInfo({ id: data.pdf_id, name: data.filename || file.name });
+      setPdfList((prev) => {
+        const exists = prev.some((p) => p.id === data.pdf_id);
+        if (exists) return prev;
+        return [{ id: data.pdf_id, name: data.filename || file.name }, ...prev];
+      });
+      setActivePdfId(data.pdf_id);
 
       // Switch to PDF tab automatically after upload (but user can switch back anytime)
       setChatMode("pdf");
@@ -1242,10 +1284,16 @@ const VideoPage = () => {
       hydratedPdfChatRef.current[data.pdf_id] = false;
 
       // optional assistant message
-      setPdfMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: `PDF loaded: ${data.filename || file.name}. Ask your questions now.` },
-      ]);
+      setPdfChats((prev) => {
+        const cur = prev[data.pdf_id] || [];
+        return {
+          ...prev,
+          [data.pdf_id]: [
+            ...cur,
+            { role: "assistant", content: `PDF loaded: ${data.filename || file.name}. Ask your questions now.` },
+          ],
+        };
+      });
     } catch (err) {
       console.error(err);
       alert(err.message || "Unable to upload PDF");
@@ -1264,21 +1312,21 @@ const VideoPage = () => {
 
     // ✅ Decide endpoint based on selected tab
     if (chatMode === "pdf") {
-      if (!pdfInfo?.id) {
+      if (!activePdfId) {
         alert("Please upload a PDF first.");
         return;
       }
-      addUser(setPdfMessages);
+      setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
       setDoubtText("");
       setLoadingDoubt(true);
 
       try {
-        const convoId = getPdfConversationId(pdfInfo.id);
+        const convoId = getPdfConversationId(activePdfId);
         const res = await authedFetch(`/pdf/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            pdf_id: pdfInfo.id,
+            pdf_id: activePdfId,
             question: userMsg,
             conversation_id: convoId,
             courseTitle: courseKey,
@@ -1287,10 +1335,10 @@ const VideoPage = () => {
 
         const data = await res.json();
         const reply = res.ok ? data.reply : "Error: " + (data.error || "Unable to get reply");
-        addAssistant(setPdfMessages, reply);
+        setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
       } catch (err) {
         console.error(err);
-        addAssistant(setPdfMessages, err.message || "Network error. Please try again.");
+        setMessages((prev) => [...prev, { role: "assistant", content: err.message || "Network error. Please try again." }]);
       } finally {
         setLoadingDoubt(false);
       }
@@ -1771,17 +1819,17 @@ const VideoPage = () => {
                         Normal
                       </button>
                       <button
-                        onClick={() => pdfInfo?.id && setChatMode("pdf")}
-                        disabled={!pdfInfo?.id}
+                        onClick={() => activePdfId && setChatMode("pdf")}
+                        disabled={!activePdfId}
                         className={`text-xs px-3 py-1 rounded-full border border-[var(--border)] disabled:opacity-50 ${
                           chatMode === "pdf" ? "bg-[var(--accent)] text-white" : "bg-[var(--bg)]"
                         }`}
-                        title={pdfInfo?.id ? "PDF chat" : "Upload a PDF to enable"}
+                        title={activePdfId ? "PDF chat" : "Upload a PDF to enable"}
                       >
                         PDF
                       </button>
 
-                      {pdfInfo?.id && (
+                      {activePdfId && (
                         <button
                           onClick={removePdf}
                           className="text-xs px-3 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:opacity-90"
@@ -1793,10 +1841,40 @@ const VideoPage = () => {
                     </div>
                   </div>
 
+                  {pdfList.length > 0 && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-[11px] text-[var(--muted)]">PDF:</span>
+                      <select
+                        value={activePdfId || ""}
+                        onChange={(e) => {
+                          const id = e.target.value || null;
+                          setActivePdfId(id);
+                          if (id) setChatMode("pdf");
+                        }}
+                        className="text-xs px-2 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] max-w-[260px]"
+                      >
+                        {pdfList.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => {
+                          if (pdfInputRef.current) pdfInputRef.current.click();
+                        }}
+                        className="text-xs px-3 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:opacity-90"
+                        title="Upload another PDF"
+                      >
+                        + Upload
+                      </button>
+                    </div>
+                  )}
+
                   <p className="text-xs text-[var(--muted)] mt-1">
                     {chatMode === "pdf"
-                      ? pdfInfo?.id
-                        ? `PDF: ${pdfInfo?.name || "Loaded"}`
+                      ? activePdfId
+                        ? `PDF: ${activePdf?.name || "Loaded"}`
                         : "Upload a PDF to chat with it."
                       : "Ask doubts about this course"}
                   </p>
@@ -1816,7 +1894,7 @@ const VideoPage = () => {
                 {messages.length === 0 ? (
                   <p className="text-[var(--muted)] text-sm">
                     {chatMode === "pdf"
-                      ? pdfInfo?.id
+                      ? activePdfId
                         ? "Ask a question about the PDF below."
                         : "Upload a PDF to start PDF chat."
                       : "Type your question below and press Send."}
@@ -1848,37 +1926,40 @@ const VideoPage = () => {
                               initial={{ opacity: 0, y: 6 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.18 }}
-                              className="relative max-w-[85%] p-3 rounded-2xl whitespace-pre-wrap bg-[var(--card)] border border-[var(--border)] text-[var(--text)] rounded-bl-sm"
+                              className="max-w-[85%] p-3 rounded-2xl whitespace-pre-wrap bg-[var(--card)] border border-[var(--border)] text-[var(--text)] rounded-bl-sm"
                             >
-                              <div className="absolute top-2 right-2 flex items-center gap-2">
-                                <button
-                                  onClick={async () => {
-                                    const ok = await copyToClipboard(aText);
-                                    if (ok) {
-                                      setCopiedText(`a-${pairIndex}`);
-                                      setTimeout(() => setCopiedText(null), 900);
-                                    }
-                                  }}
-                                  className="text-xs px-2 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:opacity-90"
-                                  title="Copy"
-                                >
-                                  {copiedText === `a-${pairIndex}` ? "Copied" : "Copy"}
-                                </button>
-                                <button
-                                  onClick={() => deletePair(pairIndex)}
-                                  className="text-xs px-2 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:opacity-90"
-                                  title="Delete this Q&A"
-                                >
-                                  Delete
-                                </button>
+                              {/* Header row (prevents overlap with content) */}
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <span className="text-xs text-[var(--muted)]">Answer</span>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={async () => {
+                                      const ok = await copyToClipboard(aText);
+                                      if (ok) {
+                                        setCopiedText(`a-${pairIndex}`);
+                                        setTimeout(() => setCopiedText(null), 900);
+                                      }
+                                    }}
+                                    className="text-xs px-2 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:opacity-90"
+                                    title="Copy"
+                                  >
+                                    {copiedText === `a-${pairIndex}` ? "Copied" : "Copy"}
+                                  </button>
+                                  <button
+                                    onClick={() => deletePair(pairIndex)}
+                                    className="text-xs px-2 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:opacity-90"
+                                    title="Delete this Q&A"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </div>
-
-                              {blocks.map((b, i) => {
+{blocks.map((b, i) => {
                                 if (b.type === "code") {
                                   return (
                                     <div key={i} className="mt-3">
-                                      <div className="flex items-center justify-between bg-[var(--card)] text-[var(--text)] px-3 py-2 rounded-t-lg">
-                                        <span className="text-xs opacity-80">{b.lang}</span>
+                                      <div className="flex items-center justify-between px-3 py-2 rounded-t-xl bg-[#161b22] text-[#c9d1d9]">
+                                        <span className="text-xs opacity-80">{b.lang || "code"}</span>
                                         <button
                                           onClick={async () => {
                                             const ok = await copyToClipboard(b.value);
@@ -1887,12 +1968,12 @@ const VideoPage = () => {
                                               setTimeout(() => setCopiedText(null), 900);
                                             }
                                           }}
-                                          className="text-xs px-2 py-1 bg-[var(--surface)] hover:brightness-95 rounded"
+                                          className="text-xs px-2 py-1 rounded-lg border border-white/10 bg-[#0d1117] hover:brightness-110"
                                         >
                                           {copiedText === `code-${pairIndex}-${i}` ? "Copied" : "Copy"}
                                         </button>
                                       </div>
-                                      <pre className="bg-[var(--card)] text-[var(--text)] p-3 rounded-b-lg overflow-x-auto text-sm">
+                                      <pre className="bg-[#0d1117] text-[#c9d1d9] p-3 rounded-b-xl overflow-x-auto text-sm font-mono border border-white/10 border-t-0">
                                         <code>{b.value}</code>
                                       </pre>
                                     </div>
@@ -1969,7 +2050,7 @@ const VideoPage = () => {
                 <div className="mt-2 flex items-center justify-between">
                   <p className="text-xs text-[var(--muted)]">
                     {chatMode === "pdf"
-                      ? pdfInfo?.id
+                      ? activePdfId
                         ? "Using PDF context"
                         : "Upload a PDF to enable PDF chat"
                       : `Course: ${serviceTitle}`}
