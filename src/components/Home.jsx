@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import Hero from "./Hero/Hero";
 import Services from "./Services/Services";
+import MockTestPromo from "./MockTestPromo";
 import Banner from "./Banner/Banner";
 import Subscribe from "./Subscribe/Subscribe";
 import Banner2 from "./Banner/Banner2";
@@ -10,8 +11,10 @@ function Home() {
 
   // ✅ allow navigation to "/#courses" from other pages
   useEffect(() => {
-    if (location.hash === "#courses") {
-      const el = document.getElementById("courses");
+    const id = location.hash?.replace("#", "");
+    if (!id) return;
+    if (id === "courses" || id === "mock-tests") {
+      const el = document.getElementById(id);
       if (el) {
         // small delay so layout is painted
         setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
@@ -24,6 +27,7 @@ function Home() {
         <main className="overflow-x-hidden bg-[var(--bg)] text-[var(--text)]">
       <Hero />
       <Services />
+      <MockTestPromo />
       <Banner />
       <Subscribe />
       <Banner2 />

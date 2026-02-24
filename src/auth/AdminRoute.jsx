@@ -9,7 +9,10 @@ import { useAuth } from "./AuthProvider.jsx";
  */
 export default function AdminRoute({ children }) {
   const { user, loading } = useAuth();
-  const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || "admin@zenithlearning.site").toLowerCase();
+  const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || import.meta.env.VITE_ADMIN_EMAIL || "admin@zenithlearning.site")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
   const location = useLocation();
 
   if (loading) {
@@ -22,7 +25,8 @@ export default function AdminRoute({ children }) {
 
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
 
-    const isAdmin = (user?.email || "").toLowerCase() === ADMIN_EMAIL;
+      const email = (user?.email || "").toLowerCase();
+  const isAdmin = ADMIN_EMAILS.includes(email);
   if (!isAdmin) {
     return <Navigate to="/" replace />;
   }

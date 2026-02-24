@@ -108,7 +108,7 @@ export default function Notes() {
   };
 
   return (
-    <div className="container">
+    <div className="max-w-6xl mx-auto px-4 pt-10 pb-28">
       <div className="flex items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">Notes</h1>
@@ -234,4 +234,5 @@ export default function Notes() {
       )}
     </div>
   );
+
 }

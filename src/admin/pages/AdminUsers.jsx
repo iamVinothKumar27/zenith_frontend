@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider.jsx";
 import { Donut } from "../components/Charts.jsx";
 
@@ -18,6 +19,7 @@ function Chip({ children, tone = "gray" }) {
 
 export default function AdminUsers() {
   const { token, apiBase, user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [users, setUsers] = useState([]);
@@ -152,7 +154,13 @@ export default function AdminUsers() {
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className="font-semibold text-[var(--text)] truncate max-w-[420px]">{u.name || "(no name)"}</div>
+                  <button
+                    onClick={() => navigate(`/admin/user/${encodeURIComponent(u.uid)}?tab=overview`)}
+                    className="font-semibold text-[var(--text)] truncate max-w-[420px] text-left hover:underline"
+                    title="Open user drilldown"
+                  >
+                    {u.name || "(no name)"}
+                  </button>
                   <Chip tone={u.isAdmin ? "green" : "gray"}>{u.isAdmin ? "admin" : "user"}</Chip>
                   {(u.heldCourses?.length || 0) > 0 && <Chip tone="amber">{u.heldCourses.length} held</Chip>}
                 </div>
@@ -189,6 +197,13 @@ export default function AdminUsers() {
               </div>
 
               <div className="flex items-center gap-3 shrink-0 justify-between lg:justify-end">
+                <button
+                  onClick={() => navigate(`/admin/user/${encodeURIComponent(u.uid)}?tab=overview`)}
+                  className="px-3 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] text-sm hover:bg-[var(--surface)]"
+                  title="Open user drilldown"
+                >
+                  View
+                </button>
                 {!u.isAdmin ? (
                   <div className="flex items-center gap-3">
                     <Donut percent={u.overallPercent || 0} />

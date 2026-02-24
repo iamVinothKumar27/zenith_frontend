@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider.jsx";
 import { BarChart } from "../components/Charts.jsx";
 
 export default function AdminCourseProgress() {
   const { token, apiBase } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [rows, setRows] = useState([]);
@@ -100,12 +102,26 @@ export default function AdminCourseProgress() {
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
               {filtered.map((r, idx) => (
-                <tr key={`${r.uid}:${r.courseTitle}:${idx}`} className="hover:bg-[rgba(16,185,129,0.06)]">
+                <tr
+                  key={`${r.uid}:${r.courseTitle}:${idx}`}
+                  className="hover:bg-[rgba(16,185,129,0.06)] cursor-pointer"
+                  onClick={() => navigate(`/admin/user/${encodeURIComponent(r.uid)}?tab=progress`)}
+                  title="Open user drilldown"
+                >
                   <td className="px-6 py-3">
                     <div className="font-medium text-[var(--text)]">{r.name || r.email || r.uid}</div>
                     <div className="text-xs text-[var(--muted)]">{r.email || ""}</div>
                   </td>
-                  <td className="px-6 py-3 text-[var(--text)]">{r.courseTitle}</td>
+                  <td
+                    className="px-6 py-3 text-[var(--text)]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/admin/course/${encodeURIComponent(r.courseTitle)}`);
+                    }}
+                    title="Open course details"
+                  >
+                    <span className="hover:underline">{r.courseTitle}</span>
+                  </td>
                   <td className="px-6 py-3 text-right text-[var(--text)]">{r.passedQuizzes}</td>
                   <td className="px-6 py-3 text-right text-[var(--text)]">{r.totalQuizzes}</td>
                   <td className="px-6 py-3 text-right font-semibold text-[var(--text)]">{r.percent}%</td>

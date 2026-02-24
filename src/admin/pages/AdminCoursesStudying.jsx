@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider.jsx";
 import { BarChart } from "../components/Charts.jsx";
 
 export default function AdminCoursesStudying() {
   const { token, apiBase } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [courses, setCourses] = useState([]);
@@ -61,7 +63,9 @@ export default function AdminCoursesStudying() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18 }}
-            className="bg-[var(--card)] text-[var(--text)] rounded-2xl border border-[var(--border)] p-5 shadow-sm"
+            className="bg-[var(--card)] text-[var(--text)] rounded-2xl border border-[var(--border)] p-5 shadow-sm cursor-pointer hover:bg-[var(--surface)]"
+            onClick={() => navigate(`/admin/course/${encodeURIComponent(c.courseTitle)}`)}
+            title="Open course details"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

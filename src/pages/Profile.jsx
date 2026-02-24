@@ -169,7 +169,7 @@ export default function Profile() {
   const disabled = !isEditing;
 
   return (
-    <div className="max-w-6xl mx-auto px-4">
+    <div className="max-w-6xl mx-auto px-4 pt-10 pb-28">
       <div className="max-w-3xl mx-auto">
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-xl p-6 sm:p-8">
           <div className="flex items-start justify-between gap-6">

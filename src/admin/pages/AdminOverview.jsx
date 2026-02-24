@@ -51,6 +51,19 @@ export default function AdminOverview() {
     return data;
   }, [courses]);
 
+  const topUsers = useMemo(() => {
+    const list = (users || [])
+      .filter((u) => !u.isAdmin)
+      .map((u) => {
+        const passed = (u.courses || []).reduce((a, c) => a + Number(c.passedQuizzes || 0), 0);
+        const label = ((u.name || u.email || "User") + "").split("@")[0].slice(0, 16);
+        return { label, value: passed };
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+    return list;
+  }, [users]);
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between gap-3 mb-6">
@@ -121,6 +134,40 @@ export default function AdminOverview() {
               </div>
             ))}
             {(!users || users.length === 0) && <div className="text-sm text-[var(--muted)]">No users yet.</div>}
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="font-semibold text-[var(--text)]">Top users (passed quizzes)</div>
+              <div className="text-sm text-[var(--muted)]">Across all courses</div>
+            </div>
+          </div>
+          {topUsers.length ? <BarChart data={topUsers} /> : <div className="text-sm text-[var(--muted)]">No quiz data yet.</div>}
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="font-semibold text-[var(--text)]">Users snapshot</div>
+              <div className="text-sm text-[var(--muted)]">Admins vs learners</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-2xl bg-[var(--bg)] border border-[var(--border)]">
+              <div className="text-sm text-[var(--muted)]">Learners</div>
+              <div className="text-2xl font-semibold text-[var(--text)] mt-1">{users.filter((u) => !u.isAdmin).length}</div>
+            </div>
+            <div className="p-4 rounded-2xl bg-[var(--bg)] border border-[var(--border)]">
+              <div className="text-sm text-[var(--muted)]">Admins</div>
+              <div className="text-2xl font-semibold text-[var(--text)] mt-1">{users.filter((u) => u.isAdmin).length}</div>
+            </div>
+          </div>
+          <div className="text-xs text-[var(--muted)] mt-3">
+            Open <span className="font-medium text-[var(--text)]">Users</span> to drill down user-wise course/quiz/mock-test reports.
           </div>
         </motion.div>
       </div>

@@ -107,7 +107,7 @@ const CourseForm = () => {
         body: JSON.stringify(payload),
       });
 
-      const result = await res.json();
+      const result = await res.json().catch(() => ({}));
 
       if (res.ok) {
         // ✅ Save course roadmap/videos to DB for "My Courses" resume

@@ -12,6 +12,10 @@ const MENU = [
   { id: 2, title: "Services", path: "/services" },
   { id: 3, title: "My Courses", path: "/my-courses", authOnly: true },
   { id: 4, title: "Notes", path: "/notes", authOnly: true },
+  // Mock Test is available on Home (cards). Keep only history as "My Tests".
+  { id: 4.55, title: "My Tests", path: "/my-tests", authOnly: true },
+  { id: 4.6, title: "ATS Intelligence", path: "/resume-rank", authOnly: true },
+  { id: 4.61, title: "ATS History", path: "/ats-history", authOnly: true },
   { id: 5, title: "Profile", path: "/profile", authOnly: true },
   { id: 6, title: "Contact", path: "/contact" },
 ];
@@ -44,9 +48,9 @@ function DrawerLink({ to, children, onClick }) {
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  // If the remote avatar URL fails to load (404/CORS/etc.), show initials instead of a broken image.
-  const [avatarError, setAvatarError] = useState(false);
-  const [drawerAvatarError, setDrawerAvatarError] = useState(false);
+  // If an avatar URL fails to load, automatically fall back to the next candidate.
+  const [avatarIdx, setAvatarIdx] = useState(0);
+  const [drawerAvatarIdx, setDrawerAvatarIdx] = useState(0);
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -59,14 +63,21 @@ export default function Navbar() {
     );
   }, [profile?.name, user?.displayName, user?.email]);
 
-  const avatarUrl =
-    profile?.photoLocalURL || profile?.photoURL || user?.photoURL || "";
+  const avatarCandidates = useMemo(() => {
+    return [profile?.photoLocalURL, profile?.photoURL, user?.photoURL]
+      .map((x) => (x ? String(x) : ""))
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }, [profile?.photoLocalURL, profile?.photoURL, user?.photoURL]);
 
-  // When the user/profile changes, clear previous image error flags.
+  const avatarUrl = avatarCandidates[avatarIdx] || "";
+  const drawerAvatarUrl = avatarCandidates[drawerAvatarIdx] || "";
+
+  // When the user/profile changes, reset the fallback index.
   useEffect(() => {
-    setAvatarError(false);
-    setDrawerAvatarError(false);
-  }, [avatarUrl]);
+    setAvatarIdx(0);
+    setDrawerAvatarIdx(0);
+  }, [avatarCandidates.join("|")]);
 
   const handleLogout = async () => {
     try {
@@ -118,12 +129,16 @@ export default function Navbar() {
                 title="Profile"
               >
                 {/* Always show avatar on all screen sizes; keep the name hidden on very small screens */}
-                {avatarUrl && !avatarError ? (
+                {avatarUrl ? (
                   <img
                     src={avatarUrl}
                     alt="profile"
                     className="w-7 h-7 rounded-full object-cover shrink-0"
-                    onError={() => setAvatarError(true)}
+                    onError={() =>
+                      setAvatarIdx((i) =>
+                        avatarCandidates.length ? Math.min(i + 1, avatarCandidates.length - 1) : 0
+                      )
+                    }
                   />
                 ) : (
                   <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-white text-xs font-bold grid place-items-center shrink-0">
@@ -198,14 +213,18 @@ export default function Navbar() {
               {/* User card */}
               <div className="px-4 pb-3">
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-3 flex items-center gap-3">
-                  {avatarUrl && !drawerAvatarError ? (
-                    <img
-                      src={avatarUrl}
-                      alt="profile"
-                      className="w-12 h-12 rounded-full object-cover shrink-0"
-                      onError={() => setDrawerAvatarError(true)}
-                    />
-                  ) : (
+	                  {drawerAvatarUrl ? (
+	                    <img
+	                      src={drawerAvatarUrl}
+	                      alt="profile"
+	                      className="w-12 h-12 rounded-full object-cover shrink-0"
+	                      onError={() =>
+	                        setDrawerAvatarIdx((i) =>
+	                          avatarCandidates.length ? Math.min(i + 1, avatarCandidates.length - 1) : 0
+	                        )
+	                      }
+	                    />
+	                  ) : (
                     <div className="w-12 h-12 rounded-full bg-[var(--accent)] text-white font-bold grid place-items-center shrink-0">
                       {initials(displayName)}
                     </div>

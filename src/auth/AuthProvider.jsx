@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { auth } from "../firebase.js";
-import { onAuthStateChanged } from "firebase/auth";
+import { onIdTokenChanged } from "firebase/auth";
 
 // ✅ Multi-backend support (comma-separated). Example:
 // VITE_API_BASES=https://server.zenithlearning.site,https://zenithserver.vinothkumarts.in
@@ -80,7 +80,7 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    const unsub = onIdTokenChanged(auth, async (u) => {
       setLoading(true);
       try {
         setUser(u);

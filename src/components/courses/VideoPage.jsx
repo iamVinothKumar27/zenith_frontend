@@ -5,6 +5,7 @@ import { auth } from "../../firebase.js";
 import { motion } from "framer-motion";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
 import MindmapViewer from "../mindmap/MindmapViewer.jsx";
+import Editor from "@monaco-editor/react";
 
 const PASS_PERCENT = 0.4; // 40% to pass
 
@@ -19,6 +20,7 @@ const CHAT_MESSAGES_COURSE_KEY = "zenith_chat_course_messages_v1";
 const CHAT_MESSAGES_PDF_KEY = "zenith_chat_pdf_messages_v1";
 const PDF_LIST_KEY = "zenith_chat_pdf_list_v1"; // per-course: [{id,name}]
 const ACTIVE_PDF_KEY = "zenith_chat_active_pdf_v1"; // per-course: pdf_id
+const CHAT_CODE_THEME_KEY = "zenith_chat_code_theme_v1"; // dark|light (chat code blocks)
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
@@ -146,6 +148,13 @@ const VideoPage = () => {
 
   // ✅ Chat
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatCodeTheme, setChatCodeTheme] = useState(() => {
+    try {
+      return localStorage.getItem(`${CHAT_CODE_THEME_KEY}:${courseKey}`) || "dark";
+    } catch {
+      return "dark";
+    }
+  });
 
   // Course + PDF message histories (kept separate internally)
   const [courseMessages, setCourseMessages] = useState([]);
@@ -157,6 +166,13 @@ const VideoPage = () => {
 
   // ✅ User-switchable chat mode (like ChatGPT: Normal vs PDF)
   const [chatMode, setChatMode] = useState("course"); // "course" | "pdf"
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(`${CHAT_CODE_THEME_KEY}:${courseKey}`);
+      if (v) setChatCodeTheme(v);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseKey]);
 
   // If we have PDFs but none selected (e.g., after refresh), auto-select the first one
   useEffect(() => {
@@ -231,9 +247,27 @@ const VideoPage = () => {
   const authedFetch = async (path, options = {}) => {
     const user = auth.currentUser;
     if (!user) throw new Error("Please login to continue.");
-    const token = await user.getIdToken();
-    const headers = { ...(options.headers || {}), Authorization: `Bearer ${token}` };
-    return fetchWithFallback(path, { ...options, headers });
+
+    const doFetch = async (forceRefresh = false) => {
+      const token = await user.getIdToken(forceRefresh);
+      const headers = { ...(options.headers || {}), Authorization: `Bearer ${token}` };
+      return fetchWithFallback(path, { ...options, headers });
+    };
+
+    let res = await doFetch(false);
+    if (res.status === 401) {
+      // Token might be expired; force refresh once and retry
+      res = await doFetch(true);
+    }
+    return res;
+  };
+
+  const readJsonSafe = async (res) => {
+    try {
+      return await res.json();
+    } catch {
+      return {};
+    }
   };
 
   // ---------------- Load course state if opened from "My Courses" ----------------
@@ -255,7 +289,7 @@ const VideoPage = () => {
           signal: ac.signal,
           body: JSON.stringify({ courseTitle: courseKey }),
         });
-        const data = await res.json();
+        const data = await readJsonSafe(res);
         if (res.ok && data.found && data.state) {
           setRoadmap(data.state.roadmap || null);
           setVideos(data.state.videos || null);
@@ -333,7 +367,7 @@ const VideoPage = () => {
     const loadPdfListFromDb = async () => {
       try {
         const res = await authedFetch(`/pdf/list?courseTitle=${encodeURIComponent(courseKey)}`, { method: "GET" });
-        const data = await res.json();
+        const data = await readJsonSafe(res);
         if (res.ok && data && Array.isArray(data.pdfs)) {
           const dbList = data.pdfs;
           setPdfList(dbList);
@@ -377,7 +411,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
           `/chat/history?courseTitle=${encodeURIComponent(courseKey)}&conversation_id=${encodeURIComponent(convoId)}`,
           { method: "GET" }
         );
-        const data = await res.json();
+        const data = await readJsonSafe(res);
         if (res.ok && Array.isArray(data.history)) {
           setCourseMessages(data.history);
           hydratedCourseChatRef.current = true;
@@ -397,7 +431,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
           `/pdf/chat/history?courseTitle=${encodeURIComponent(courseKey)}&pdf_id=${encodeURIComponent(pid)}&conversation_id=${encodeURIComponent(convoId)}`,
           { method: "GET" }
         );
-        const data = await res.json();
+        const data = await readJsonSafe(res);
         if (res.ok && Array.isArray(data.history)) {
           setPdfChats((prev) => ({ ...prev, [pid]: data.history }));
           hydratedPdfChatRef.current[pid] = true;
@@ -555,7 +589,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ courseTitle: courseKey }),
         });
-        const data = await res.json();
+        const data = await readJsonSafe(res);
         if (!res.ok) throw new Error(data?.error || "Failed to load course progress");
         if (!data?.found || !data?.progress) {
           hydratedFromDBRef.current = true;
@@ -766,7 +800,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: videoUrl }),
       });
-      const data = await res.json();
+      const data = await readJsonSafe(res);
 
       if (res.ok) {
         if (data.transcript) {
@@ -815,7 +849,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
           video_url: cv.video,
         }),
       });
-      const data = await res.json();
+      const data = await readJsonSafe(res);
       if (res.ok) setSummary(data.summary);
       else setSummary(data.error || "Error loading summary. Please try again.");
     } catch (err) {
@@ -875,7 +909,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
           force,
         }),
       });
-      const data = await res.json();
+      const data = await readJsonSafe(res);
       if (!res.ok) {
         setMindmapTree(null);
         setMindmapError(data.error || "Failed to generate mindmap");
@@ -1196,6 +1230,31 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
     return blocks.length ? blocks : [{ type: "text", value: text }];
   };
 
+  const monacoLang = (lang) => {
+    const l = String(lang || "").toLowerCase();
+    if (l === "js" || l === "javascript") return "javascript";
+    if (l === "ts" || l === "typescript") return "typescript";
+    if (l === "py" || l === "python") return "python";
+    if (l === "c++" || l === "cpp") return "cpp";
+    if (l === "c") return "c";
+    if (l === "java") return "java";
+    if (l === "json") return "json";
+    if (l === "html") return "html";
+    if (l === "css") return "css";
+    if (l === "sql") return "sql";
+    return "plaintext";
+  };
+
+  const codeHeightPx = (code) => {
+    try {
+      const lines = String(code || "").split("\n").length;
+      const h = 20 * Math.min(lines + 1, 18) + 24; // cap height
+      return Math.max(140, Math.min(h, 420));
+    } catch {
+      return 180;
+    }
+  };
+
   const copyToClipboard = async (value) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -1299,7 +1358,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
             pair_index: pairIndex,
           }),
         });
-        const data = await res.json();
+        const data = await readJsonSafe(res);
         if (res.ok && Array.isArray(data.history)) {
           const pid = activePdfId;
           setPdfChats((prev) => ({ ...prev, [pid]: data.history }));
@@ -1315,7 +1374,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
             pair_index: pairIndex,
           }),
         });
-        const data = await res.json();
+        const data = await readJsonSafe(res);
         if (res.ok && Array.isArray(data.history)) setCourseMessages(data.history);
       }
     } catch (e) {
@@ -1338,7 +1397,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
       form.append("courseTitle", courseKey);
 
       const res = await authedFetch(`/pdf/upload`, { method: "POST", body: form });
-      const data = await res.json();
+      const data = await readJsonSafe(res);
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
       setPdfList((prev) => {
@@ -1404,7 +1463,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
           }),
         });
 
-        const data = await res.json();
+        const data = await readJsonSafe(res);
         const reply = res.ok ? data.reply : "Error: " + (data.error || "Unable to get reply");
         setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
       } catch (err) {
@@ -1434,7 +1493,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
         }),
       });
 
-      const data = await res.json();
+      const data = await readJsonSafe(res);
       const reply = res.ok ? data.reply : "Error: " + (data.error || "Unable to get reply");
       addAssistant(setCourseMessages, reply);
     } catch (err) {
@@ -1969,6 +2028,21 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
                 </div>
 
                 {/* RIGHT SIDE (Close button) */}
+
+                <button
+                  onClick={() => {
+                    const next = chatCodeTheme === "dark" ? "light" : "dark";
+                    setChatCodeTheme(next);
+                    try {
+                      localStorage.setItem(`${CHAT_CODE_THEME_KEY}:${courseKey}`, next);
+                    } catch {}
+                  }}
+                  className="px-3 py-1 rounded-xl bg-[var(--bg)] hover:opacity-90 border border-[var(--border)] text-xs font-semibold"
+                  title="Toggle code theme"
+                >
+                  Code: {chatCodeTheme === "dark" ? "Dark" : "Light"}
+                </button>
+
                 <button
                   onClick={() => setChatOpen(false)}
                   className="px-3 py-1 rounded-xl bg-[var(--bg)] hover:opacity-90 border border-[var(--border)]"
@@ -2048,7 +2122,7 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
                                 if (b.type === "code") {
                                   return (
                                     <div key={i} className="mt-3">
-                                      <div className="flex items-center justify-between px-3 py-2 rounded-t-xl bg-[#161b22] text-[#c9d1d9]">
+                                      <div className={`flex items-center justify-between px-3 py-2 rounded-t-xl ${chatCodeTheme === "dark" ? "bg-[#161b22] text-[#c9d1d9]" : "bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] border-b-0"}`}>
                                         <span className="text-xs opacity-80">{b.lang || "code"}</span>
                                         <button
                                           onClick={async () => {
@@ -2058,14 +2132,29 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
                                               setTimeout(() => setCopiedText(null), 900);
                                             }
                                           }}
-                                          className="text-xs px-2 py-1 rounded-lg border border-white/10 bg-[#0d1117] hover:brightness-110"
+                                          className={`text-xs px-2 py-1 rounded-lg border ${chatCodeTheme === "dark" ? "border-white/10 bg-[#0d1117] hover:brightness-110 text-[#c9d1d9]" : "border-[var(--border)] bg-[var(--card)] hover:opacity-90 text-[var(--text)]"}`}
                                         >
                                           {copiedText === `code-${pairIndex}-${i}` ? "Copied" : "Copy"}
                                         </button>
                                       </div>
-                                      <pre className="bg-[#0d1117] text-[#c9d1d9] p-3 rounded-b-xl overflow-x-auto text-sm font-mono border border-white/10 border-t-0">
-                                        <code>{b.value}</code>
-                                      </pre>
+                                      <div className={`rounded-b-xl overflow-hidden border ${chatCodeTheme === "dark" ? "border-white/10 border-t-0" : "border-[var(--border)] border-t-0"}`}>
+                                        <Editor
+                                          height={`${codeHeightPx(b.value)}px`}
+                                          defaultLanguage={monacoLang(b.lang)}
+                                          value={String(b.value || "")}
+                                          theme={chatCodeTheme === "dark" ? "vs-dark" : "light"}
+                                          options={{
+                                            readOnly: true,
+                                            minimap: { enabled: false },
+                                            scrollBeyondLastLine: false,
+                                            wordWrap: "on",
+                                            fontSize: 13,
+                                            lineNumbers: "on",
+                                            renderLineHighlight: "none",
+                                            automaticLayout: true,
+                                          }}
+                                        />
+                                      </div>
                                     </div>
                                   );
                                 }

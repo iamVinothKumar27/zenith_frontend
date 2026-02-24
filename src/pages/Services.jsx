@@ -48,7 +48,7 @@ export default function Services() {
 
   return (
     <>
-    <Navbar />
+
     <div className="bg-[var(--bg)] text-[var(--text)]">
       <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
@@ -93,7 +93,7 @@ export default function Services() {
         </div>
       </div>
     </div>
-    <Footer />
+    
     </>
   );
 }
