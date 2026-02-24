@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import AtsAnalyticsCharts from "../components/AtsAnalyticsCharts.jsx";
+import { extractPdfText } from "../utils/extractPdfText.js";
 
 // Same backend fallback logic as AuthProvider (kept local to avoid coupling)
 const API_BASES = (
@@ -146,11 +147,44 @@ export default function ResumeRank() {
       return;
     }
 
+    const isPdf = (f) =>
+      !!f && ((f.type || "").toLowerCase().includes("pdf") || (f.name || "").toLowerCase().endsWith(".pdf"));
+
     try {
       setBusy(true);
       setStatus("");
       setResult(null);
 
+      // Render-safe path: if resume is PDF, extract text in browser and send JSON (no PDF parsing on backend).
+      if (isPdf(resumeFile)) {
+        const resumeText = (await extractPdfText(resumeFile)).trim();
+
+        let jdTextFinal = jdText.trim();
+        if (!jdTextFinal && jdFile) {
+          if (!isPdf(jdFile)) {
+            throw new Error("JD file must be a PDF or paste JD text.");
+          }
+          jdTextFinal = (await extractPdfText(jdFile)).trim();
+        }
+
+        const res = await fetchWithFallback("/ats/analyze", {
+          method: "POST",
+          headers: await getAuthHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({
+            resume_text: resumeText,
+            jd_text: jdTextFinal,
+            company: company.trim(),
+            role: role.trim(),
+          }),
+        });
+
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(j?.error || res.statusText);
+        setResult(j);
+        return;
+      }
+
+      // Legacy path (DOCX resume): keep multipart upload to preserve template downloads.
       const form = new FormData();
       form.append("resume_file", resumeFile);
       if (jdFile) form.append("jd_file", jdFile);
