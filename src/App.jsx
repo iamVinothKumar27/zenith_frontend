@@ -79,11 +79,7 @@ export default function App() {
 
       <ErrorBoundary>
         <Routes>
-          {/* Public */}          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/check-email" element={<CheckEmail />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/verify-required" element={<VerifyRequired />} />
+          
 
           {/* ✅ Mock Test (no main header/footer) */}
           <Route
@@ -102,7 +98,13 @@ export default function App() {
             <Route path="signup" element={<Signup />} />
             <Route path="services" element={<Services />} />
             <Route path="contact" element={<Contact />} />
-
+            {/* Public */}   
+          
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/check-email" element={<CheckEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-required" element={<VerifyRequired />} />
             {/* Protected pages */}
             <Route
               path="profile"
