@@ -16,7 +16,7 @@ export default function Layout() {
 
   if (hideChrome) {
     return (
-      <div className="min-h-screen flex flex-col bg-[#f4fbf6]">
+      <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text)]">
         <div className="flex-1">
           <Outlet />
         </div>
@@ -25,7 +25,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f4fbf6]">
+    <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text)]">
       <Navbar />
       <div className="flex-1">
         <Outlet />
