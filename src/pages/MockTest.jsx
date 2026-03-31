@@ -5,7 +5,7 @@ import { useAuth } from "../auth/AuthProvider.jsx";
 import { motion } from "framer-motion";
 import {
   Brain,
-  Puzzle,
+  Puzzle, 
   Code2,
   Flame,
   Play,

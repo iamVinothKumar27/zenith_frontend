@@ -66,6 +66,7 @@ export default function Profile() {
   }, [token]);
 
   const hasUploadedPhoto = !!String(profile?.avatarFileId || profile?.photoLocalURL || "").trim();
+  const hasGmailProfilePhoto = !!String(user?.photoURL || user?.providerData?.[0]?.photoURL || profile?.authPhotoURL || "").trim();
 
   const onChange = (k) => (e) => {
     setForm((s) => ({ ...s, [k]: e.target.value }));
@@ -240,6 +241,7 @@ export default function Profile() {
                     onClick={deletePhoto}
                     disabled={photoUploading || !hasUploadedPhoto}
                     className="px-3 py-2 rounded-xl border border-red-300 text-red-700 bg-[var(--bg)] text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+                    title={!hasUploadedPhoto && hasGmailProfilePhoto ? "Using Gmail profile photo from photoURL" : undefined}
                   >
                     Delete
                   </button>

@@ -1,6 +1,3 @@
-// Deterministic fallback avatars (no broken image icon when a user has not uploaded a photo).
-// We use Dicebear so we don't need md5 hashing (Gravatar).
-
 export function normalizeEmail(email = "") {
   return String(email || "").trim().toLowerCase();
 }
@@ -13,12 +10,8 @@ export function pickFirstUrl(...candidates) {
   return "";
 }
 
-export function fallbackAvatarUrl({ email = "", name = "" } = {}) {
-  const seed = normalizeEmail(email) || String(name || "").trim() || "user";
-  // SVG is crisp and loads fast.
-  return `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(seed)}`;
-}
-
-export function userAvatarUrl({ email = "", name = "", photoURL = "", photoLocalURL = "" } = {}) {
-  return pickFirstUrl(photoLocalURL, photoURL) || fallbackAvatarUrl({ email, name });
+// Do not generate predefined avatars.
+// Use uploaded app photo first, then Gmail / Firebase photoURL.
+export function userAvatarUrl({ photoURL = "", photoLocalURL = "" } = {}) {
+  return pickFirstUrl(photoLocalURL, photoURL);
 }
