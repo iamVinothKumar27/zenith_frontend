@@ -13,6 +13,24 @@ function fmtDate(v) {
   }
 }
 
+
+function toDisplay(v, fallback = "—") {
+  if (v == null || v === "") return fallback;
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+  if (Array.isArray(v)) return v.map((x) => toDisplay(x, "")).filter(Boolean).join(", ") || fallback;
+  if (typeof v === "object") {
+    if (typeof v.name === "string" && v.name.trim()) return v.name;
+    if (typeof v.title === "string" && v.title.trim()) return v.title;
+    if (typeof v.label === "string" && v.label.trim()) return v.label;
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return fallback;
+    }
+  }
+  return String(v);
+}
+
 function Pill({ children, tone = "default" }) {
   const cls =
     tone === "ok"
@@ -38,6 +56,7 @@ export default function AdminUserDetail() {
   const [courses, setCourses] = useState([]);
   const [progress, setProgress] = useState([]);
   const [mocktests, setMocktests] = useState([]);
+  const [practicetests, setPracticetests] = useState([]);
 
   const setTab = (t) => {
     const next = new URLSearchParams(sp);
@@ -52,11 +71,12 @@ export default function AdminUserDetail() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [a, b, c, d] = await Promise.all([
+      const [a, b, c, d, e] = await Promise.all([
         fetch(`${apiBase}/admin/user/${encodeURIComponent(uid)}/summary`, { headers }),
         fetch(`${apiBase}/admin/user/${encodeURIComponent(uid)}/courses-studying`, { headers }),
         fetch(`${apiBase}/admin/user/${encodeURIComponent(uid)}/course-progress`, { headers }),
         fetch(`${apiBase}/admin/user/${encodeURIComponent(uid)}/mocktests`, { headers }),
+        fetch(`${apiBase}/admin/user/${encodeURIComponent(uid)}/practicetests`, { headers }),
       ]);
 
       const aj = await a.json().catch(() => ({}));
@@ -78,12 +98,16 @@ export default function AdminUserDetail() {
 
       const dj = await d.json().catch(() => ({}));
       setMocktests(dj?.rows || []);
+
+      const ej = await e.json().catch(() => ({}));
+      setPracticetests(ej?.rows || []);
     } catch (e) {
       setError(e?.message || "Error");
       setSummary(null);
       setCourses([]);
       setProgress([]);
       setMocktests([]);
+      setPracticetests([]);
     } finally {
       setLoading(false);
     }
@@ -95,7 +119,7 @@ export default function AdminUserDetail() {
   }, [token, uid]);
 
   const user = summary?.user || {};
-  const title = user?.name || user?.email || uid;
+  const title = toDisplay(user?.name, "") || toDisplay(user?.email, "") || uid;
 
   const heldSet = useMemo(() => new Set((summary?.heldCourses || []).map((x) => String(x))), [summary]);
 
@@ -113,7 +137,7 @@ export default function AdminUserDetail() {
             <Pill>{uid}</Pill>
           </div>
           <h1 className="text-2xl font-bold text-[var(--text)] truncate">{title}</h1>
-          <p className="text-sm text-[var(--muted)] truncate">{user?.email || ""}</p>
+          <p className="text-sm text-[var(--muted)] truncate">{toDisplay(user?.email, "")}</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -124,6 +148,7 @@ export default function AdminUserDetail() {
               ["progress", "Progress"],
               ["quizzes", "Quizzes"],
               ["mocktests", "Mock Tests"],
+              ["practicetests", "Practice Tests"],
             ].map(([k, label]) => (
               <button
                 key={k}
@@ -155,7 +180,7 @@ export default function AdminUserDetail() {
       ) : (
         <>
           {tab === "overview" ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="ui-card p-5">
                 <div className="text-sm text-[var(--muted)]">Courses studying</div>
                 <div className="text-3xl font-bold mt-2 text-[var(--text)]">{(summary?.studyingCourses || []).length}</div>
@@ -169,6 +194,12 @@ export default function AdminUserDetail() {
                 <div className="text-sm text-[var(--muted)]">Mock tests</div>
                 <div className="text-3xl font-bold mt-2 text-[var(--text)]">{summary?.mocktests?.total ?? 0}</div>
                 <div className="text-xs text-[var(--muted)] mt-1">Submitted: {summary?.mocktests?.submitted ?? 0}</div>
+              </div>
+
+              <div className="ui-card p-5">
+                <div className="text-sm text-[var(--muted)]">Practice tests</div>
+                <div className="text-3xl font-bold mt-2 text-[var(--text)]">{practicetests.length}</div>
+                <div className="text-xs text-[var(--muted)] mt-1">Recent sessions</div>
               </div>
             </div>
           ) : null}
@@ -188,12 +219,12 @@ export default function AdminUserDetail() {
                   <tbody className="divide-y divide-[var(--border)]">
                     {courses.map((c) => (
                       <tr
-                        key={c.courseTitle}
+                        key={toDisplay(c.courseTitle)}
                         className="hover:bg-[var(--bg)] cursor-pointer"
                         onClick={() => navigate(`/admin/course/${encodeURIComponent(c.courseTitle)}`)}
                         title="Open course details"
                       >
-                        <td className="px-6 py-3 font-semibold">{c.courseTitle}</td>
+                        <td className="px-6 py-3 font-semibold">{toDisplay(c.courseTitle)}</td>
                         <td className="px-6 py-3">
                           {c.held ? <Pill tone="bad">On hold</Pill> : <Pill tone="ok">Active</Pill>}
                         </td>
@@ -299,6 +330,58 @@ export default function AdminUserDetail() {
                     {!mocktests.length ? (
                       <tr>
                         <td className="px-6 py-8 text-[var(--muted)]" colSpan={6}>
+                          No sessions.
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          {tab === "practicetests" ? (
+            <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--border)] font-semibold">Practice test sessions</div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-[rgba(16,185,129,0.08)] text-[var(--muted)]">
+                    <tr>
+                      <th className="text-left px-6 py-3 font-medium">Mode</th>
+                      <th className="text-left px-6 py-3 font-medium">Topic</th>
+                      <th className="text-left px-6 py-3 font-medium">Created</th>
+                      <th className="text-left px-6 py-3 font-medium">Submitted</th>
+                      <th className="text-right px-6 py-3 font-medium">Score %</th>
+                      <th className="text-left px-6 py-3 font-medium">Result</th>
+                      <th className="text-right px-6 py-3 font-medium"> </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border)]">
+                    {practicetests.map((r, i) => (
+                      <tr key={`${r.sessionId || i}`} className="hover:bg-[var(--bg)]">
+                        <td className="px-6 py-3 font-semibold">{toDisplay(r.mode, "practice")}</td>
+                        <td className="px-6 py-3 text-[var(--muted)]">{toDisplay(r.topic)}</td>
+                        <td className="px-6 py-3 text-[var(--muted)]">{fmtDate(r.createdAt)}</td>
+                        <td className="px-6 py-3 text-[var(--muted)]">{fmtDate(r.submittedAt) || "—"}</td>
+                        <td className="px-6 py-3 text-right font-semibold">{r.scorePercent == null ? "—" : `${Number(r.scorePercent).toFixed(2)}%`}</td>
+                        <td className="px-6 py-3">
+                          {r.submittedAt ? (r.passed ? <Pill tone="ok">Passed</Pill> : <Pill tone="bad">Failed</Pill>) : <Pill>Not submitted</Pill>}
+                        </td>
+                        <td className="px-6 py-3 text-right">
+                          {r.sessionId ? (
+                            <button
+                              onClick={() => navigate(`/admin/user/${encodeURIComponent(uid)}/practicetests/${encodeURIComponent(r.sessionId)}`)}
+                              className="px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] text-xs font-semibold"
+                            >
+                              View
+                            </button>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                    {!practicetests.length ? (
+                      <tr>
+                        <td className="px-6 py-8 text-[var(--muted)]" colSpan={7}>
                           No sessions.
                         </td>
                       </tr>

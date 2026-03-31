@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Brain, Puzzle, Code2, Flame } from "lucide-react";
+import { Brain, Puzzle, Code2, Flame, Database } from "lucide-react";
 import { motion } from "framer-motion";
 
 const API_BASES = (
@@ -36,63 +36,28 @@ const SlideLeft = (delay) => ({
   },
 });
 
-export default function MockTestPromo() {
-  const navigate = useNavigate();
+/**
+ * Reusable promo grid used by both Mock Tests and Practice Tests,
+ * so both sections stay pixel-identical and theme-consistent.
+ */
+export function PromoGridSection({
+  id,
+  title,
+  subtitle,
+  cards,
+  onCardClick,
+}) {
   const [selected, setSelected] = useState(null);
 
-  const cards = useMemo(
-    () => [
-      {
-        key: "general",
-        label: "General Aptitude",
-        desc: "Quant • Logical • Verbal (screening)",
-        icon: Brain,
-        defaultPattern: { general: 15, tech: 0, coding: 0 },
-      },
-      {
-        key: "tech",
-        label: "Tech Aptitude",
-        desc: "DSA • OOP • OS • CN • DBMS",
-        icon: Puzzle,
-        defaultPattern: { general: 0, tech: 15, coding: 0 },
-      },
-      {
-        key: "coding",
-        label: "Coding",
-        desc: "DSA problems with hidden testcases",
-        icon: Code2,
-        defaultPattern: { general: 0, tech: 0, coding: 1 },
-      },
-      {
-        key: "all",
-        label: "All-in-One",
-        desc: "General + Tech + Coding (full screening)",
-        icon: Flame,
-        defaultPattern: { general: 10, tech: 10, coding: 1 },
-      },
-    ],
-    []
-  );
-
-  function goToCreate(modeKey) {
-    const mode = modeKey || selected;
-    navigate(`/start-mock-test?mode=${encodeURIComponent(mode)}`);
-  }
-
   return (
-    <section id="mock-tests" className="bg-[var(--bg)] text-[var(--text)]">
+    <section id={id} className="bg-[var(--bg)] text-[var(--text)]">
       <div className="container pb-14 pt-16">
-        {/* same heading style as Services */}
         <h1 className="text-4xl font-bold text-left pb-2 text-[var(--text)]">
-          Mock Tests
+          {title}
         </h1>
-        <div className="text-sm text-[var(--muted)] pb-10">
-          Practice like real screening — Aptitude + Tech + Coding with hidden
-          testcases.
-        </div>
+        <div className="text-sm text-[var(--muted)] pb-10">{subtitle}</div>
 
-        {/* same grid + card style as Services */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8">
           {cards.map((c, i) => {
             const Icon = c.icon;
             const isActive = c.key === selected;
@@ -106,11 +71,11 @@ export default function MockTestPromo() {
                 viewport={{ once: true }}
                 onClick={() => {
                   setSelected(c.key);
-                  goToCreate(c.key);
+                  onCardClick?.(c);
                 }}
                 className={[
                   "cursor-pointer bg-[var(--card)] border border-[var(--border)] rounded-2xl",
-                  "flex flex-col gap-3 items-center justify-center p-4 py-7",
+                  "flex flex-col gap-3 items-center justify-center p-4 py-7 min-h-[240px]",
                   "hover:scale-110 duration-300 hover:shadow-2xl",
                   isActive ? "ring-2 ring-[var(--accent)]/40" : "",
                 ].join(" ")}
@@ -120,7 +85,7 @@ export default function MockTestPromo() {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     setSelected(c.key);
-                    goToCreate(c.key);
+                    onCardClick?.(c);
                   }
                 }}
               >
@@ -145,5 +110,57 @@ export default function MockTestPromo() {
         </div>
       </div>
     </section>
+  );
+}
+
+export default function MockTestPromo() {
+  const navigate = useNavigate();
+
+  const cards = useMemo(
+    () => [
+      {
+        key: "general",
+        label: "General Aptitude",
+        desc: "Quant • Logical • Verbal (screening)",
+        icon: Brain,
+      },
+      {
+        key: "tech",
+        label: "Tech Aptitude",
+        desc: "DSA • OOP • OS • CN • DBMS",
+        icon: Puzzle,
+      },
+      {
+        key: "coding",
+        label: "Coding",
+        desc: "DSA problems with hidden testcases",
+        icon: Code2,
+      },
+      {
+        key: "sql",
+        label: "SQL",
+        desc: "Schema-based SQL screening with hidden datasets",
+        icon: Database,
+      },
+      {
+        key: "all",
+        label: "All-in-One",
+        desc: "General + Tech + Coding + SQL (full screening)",
+        icon: Flame,
+      },
+    ],
+    []
+  );
+
+  return (
+    <PromoGridSection
+      id="mock-tests"
+      title="Mock Tests"
+      subtitle="Practice like real screening — Aptitude + Tech + Coding with hidden testcases."
+      cards={cards}
+      onCardClick={(c) =>
+        navigate(`/start-mock-test?mode=${encodeURIComponent(c.key)}`)
+      }
+    />
   );
 }

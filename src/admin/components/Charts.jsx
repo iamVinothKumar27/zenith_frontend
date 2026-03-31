@@ -2,7 +2,9 @@ import React from "react";
 
 // Lightweight SVG charts (no external libs)
 
-export function Donut({ percent = 0, size = 72, stroke = 10 }) {
+// --- Base primitives ---
+
+export function Donut({ percent = 0, size = 72, stroke = 10, color = "var(--accent)" }) {
   const p = Math.max(0, Math.min(100, Number(percent) || 0));
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -15,7 +17,7 @@ export function Donut({ percent = 0, size = 72, stroke = 10 }) {
         cx={size / 2}
         cy={size / 2}
         r={r}
-        stroke="#22c55e"
+        stroke={color}
         strokeWidth={stroke}
         fill="none"
         strokeDasharray={`${dash} ${c - dash}`}
@@ -91,14 +93,7 @@ export function SimplePie({ slices = [], size = 170 }) {
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Pie chart">
         {paths}
         {/* Theme-aware center cut-out so value remains readable in dark mode */}
-        <circle
-          cx={cx}
-          cy={cy}
-          r={r * 0.55}
-          fill="var(--card)"
-          stroke="var(--border)"
-          strokeWidth="1"
-        />
+        <circle cx={cx} cy={cy} r={r * 0.55} fill="var(--card)" stroke="var(--border)" strokeWidth="1" />
         <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" fontSize="14" fill="var(--text)" fontWeight="700">
           {Math.round(total)}
         </text>
@@ -114,4 +109,27 @@ export function SimplePie({ slices = [], size = 170 }) {
       </div>
     </div>
   );
+}
+
+// --- Admin analytics wrappers (match existing analytics pages API) ---
+
+// DonutChart expects: data = [{ label, value }]
+export function DonutChart({ data = [] }) {
+  const palette = ["#60a5fa", "#22c55e", "#f59e0b", "#a78bfa", "#fb7185", "#38bdf8"]; // stable colors
+  const slices = (Array.isArray(data) ? data : []).map((d, i) => ({
+    label: d.label,
+    value: Number(d.value) || 0,
+    color: palette[i % palette.length],
+  }));
+  return <SimplePie slices={slices} />;
+}
+
+// Bars expects: data = [{ label, value }]
+export function Bars({ data = [] }) {
+  return <BarChart data={Array.isArray(data) ? data : []} />;
+}
+
+// MiniRing expects: value (0..100)
+export function MiniRing({ value = 0 }) {
+  return <Donut percent={value} size={64} stroke={10} />;
 }

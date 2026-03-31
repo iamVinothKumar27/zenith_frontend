@@ -50,6 +50,9 @@ function defaultStarter(lang) {
   if (l === "cpp" || l === "c++") {
     return `#include <bits/stdc++.h>\nusing namespace std;\n\nint main(){\n  ios::sync_with_stdio(false);\n  cin.tie(nullptr);\n\n  // TODO: parse input and implement\n\n  return 0;\n}\n`;
   }
+  if (l === "c") {
+    return `#include <stdio.h>\n\nint main(){\n    // TODO: parse input and implement\n\n    return 0;\n}\n`;
+  }
   return `import sys\n\ndef solve():\n    data = sys.stdin.read().strip().split()\n    # TODO: parse input and implement\n    return\n\nif __name__ == "__main__":\n    solve()\n`;
 }
 
@@ -81,6 +84,19 @@ function Spinner({ size = 16 }) {
   return <Loader2 size={size} className="animate-spin" />;
 }
 
+function isSqlProblem(item) {
+  const pt = String(item?.problem_type || item?.type || item?.kind || "").toLowerCase();
+  const lang = String(item?.language || item?.starter_language || "").toLowerCase();
+  return pt === "sql" || lang === "sql" || !!item?.sql_meta;
+}
+
+function sectionLabel(sectionKey) {
+  if (sectionKey === "general") return "General Aptitude";
+  if (sectionKey === "tech") return "Tech Aptitude";
+  if (sectionKey === "sql") return "SQL";
+  return "Coding";
+}
+
 // =============================
 // ✅ Mock Test HOME
 // =============================
@@ -96,9 +112,10 @@ export function CreateMockTest() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  const [patternGeneral, setPatternGeneral] = useState(10);
-  const [patternTech, setPatternTech] = useState(10);
+  const [patternGeneral, setPatternGeneral] = useState(5);
+  const [patternTech, setPatternTech] = useState(5);
   const [patternCoding, setPatternCoding] = useState(2);
+  const [patternSql, setPatternSql] = useState(1);
 
   const tokenGetter = async () => (user ? await user.getIdToken() : "");
 
@@ -106,7 +123,7 @@ export function CreateMockTest() {
     { key: "general", label: "General Aptitude", desc: "Quant • Logical • Verbal (company screening)", defaultCount: 15, icon: Brain },
     { key: "tech", label: "Tech Aptitude", desc: "DSA basics • OOP • OS • CN • DBMS", defaultCount: 15, icon: Puzzle },
     { key: "coding", label: "Coding", desc: "DSA problems with hidden testcases", defaultCount: 2, icon: Code2 },
-    { key: "all", label: "All-in-One", desc: "General + Tech + Coding (full screening)", defaultCount: 30, icon: Flame },
+    { key: "all", label: "All-in-One", desc: "General + Tech + Coding + SQL (full screening)", defaultCount: 13, icon: Flame },
   ];
 
   const active = cards.find((c) => c.key === selectedKey) || cards[0];
@@ -116,9 +133,10 @@ export function CreateMockTest() {
     if (!c) return;
     setCount(c.defaultCount);
     if (c.key === "all") {
-      setPatternGeneral(10);
-      setPatternTech(10);
+      setPatternGeneral(5);
+      setPatternTech(5);
       setPatternCoding(2);
+      setPatternSql(1);
     }
     setTitle(`${c.label} Mock Test`);
   }, [selectedKey]);
@@ -132,18 +150,19 @@ export function CreateMockTest() {
 
       const n = Math.max(1, parseInt(count || 0, 10) || 1);
       const allPattern = {
-        general: Math.max(0, parseInt(patternGeneral || 0, 10) || 0),
-        tech: Math.max(0, parseInt(patternTech || 0, 10) || 0),
-        coding: Math.max(0, parseInt(patternCoding || 0, 10) || 0),
+        general: Math.max(0, Math.min(40, parseInt(patternGeneral || 0, 10) || 0)),
+        tech: Math.max(0, Math.min(40, parseInt(patternTech || 0, 10) || 0)),
+        coding: Math.max(0, Math.min(20, parseInt(patternCoding || 0, 10) || 0)),
+        sql: Math.max(0, Math.min(20, parseInt(patternSql || 0, 10) || 0)),
       };
 
       const pattern =
         active.key === "general"
-          ? { general: n, tech: 0, coding: 0 }
+          ? { general: n, tech: 0, coding: 0, sql: 0 }
           : active.key === "tech"
-          ? { general: 0, tech: n, coding: 0 }
+          ? { general: 0, tech: n, coding: 0, sql: 0 }
           : active.key === "coding"
-          ? { general: 0, tech: 0, coding: n }
+          ? { general: 0, tech: 0, coding: n, sql: 0 }
           : allPattern;
 
       const res = await fetchWithFallback("/mocktest/session/create", {
@@ -273,7 +292,7 @@ export function CreateMockTest() {
             ) : (
               <div>
                 <div className="text-sm font-semibold text-[var(--text)]">Pattern</div>
-                <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div>
                     <div className="text-[11px] text-[var(--muted)]">General</div>
                     <input
@@ -301,6 +320,16 @@ export function CreateMockTest() {
                       min={0}
                       value={patternCoding}
                       onChange={(e) => setPatternCoding(e.target.value)}
+                      className="mt-1 w-full px-4 py-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-[var(--muted)]">SQL</div>
+                    <input
+                      type="number"
+                      min={0}
+                      value={patternSql}
+                      onChange={(e) => setPatternSql(e.target.value)}
                       className="mt-1 w-full px-4 py-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)] outline-none"
                     />
                   </div>
@@ -335,7 +364,7 @@ export function CreateMockTest() {
 // =============================
 // ✅ Session Runner
 // =============================
-export function SessionRunner({ sectionsOpen = false, navOpen = true, onCloseSections, onCloseNav }) {
+export function SessionRunner({ isPractice = false, sectionsOpen = false, navOpen = true, onCloseSections, onCloseNav }) {
   const { sessionId } = useParams();
   const { user } = useAuth();
 
@@ -375,11 +404,13 @@ export function SessionRunner({ sectionsOpen = false, navOpen = true, onCloseSec
   const [err, setErr] = useState("");
   const [session, setSession] = useState(null);
   const [answers, setAnswers] = useState({ general: {}, tech: {}, coding: {} });
+  const [hydrated, setHydrated] = useState(false);
   const [activeSection, setActiveSection] = useState("general");
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeSub, setActiveSub] = useState("all");
 
   const TIMER_KEY = useMemo(() => `zenith_mocktest_timers_v1_${sessionId}`, [sessionId]);
+  const ANSWERS_KEY = useMemo(() => `zenith_answers_v1_${sessionId}`, [sessionId]);
   const [totalRemaining, setTotalRemaining] = useState(null);
   const [perRemaining, setPerRemaining] = useState({});
   const [activeRemaining, setActiveRemaining] = useState(null);
@@ -387,15 +418,34 @@ export function SessionRunner({ sectionsOpen = false, navOpen = true, onCloseSec
   const locked = (session?.status || "") === "submitted";
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const proctorEnabled = !isPractice;
+  const [proctoring, setProctoring] = useState({ enabled: !isPractice, violation_limit: 3, violations: 0, warnings: [], events: [], auto_submitted: false });
+  const proctorCooldownRef = useRef(0);
 
   const tokenGetter = async () => (user ? await user.getIdToken() : "");
+
+  const saveProgress = async (nextAnswers) => {
+    try {
+      const token = await tokenGetter();
+      if (!token) return;
+      await fetchWithFallback(`/mocktest/sessions/${sessionId}/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ answers: nextAnswers || {} }),
+      });
+    } catch {
+      // ignore
+    }
+  };
 
   const sections = useMemo(() => {
     if (!session) return [];
     const s = [];
+    const codingProblems = Array.isArray(session.coding_problems) ? session.coding_problems : [];
     if ((session.general_questions || []).length) s.push("general");
     if ((session.tech_questions || []).length) s.push("tech");
-    if ((session.coding_problems || []).length) s.push("coding");
+    if (codingProblems.some((item) => !isSqlProblem(item))) s.push("coding");
+    if (codingProblems.some((item) => isSqlProblem(item))) s.push("sql");
     return s;
   }, [session]);
 
@@ -456,7 +506,40 @@ export function SessionRunner({ sectionsOpen = false, navOpen = true, onCloseSec
         if (!res.ok) throw new Error(data?.error || "Failed to load session");
 
         setSession(data.session);
-        setAnswers(data.answers || { general: {}, tech: {}, coding: {} });
+        setProctoring(data.session?.proctoring || { enabled: !isPractice, violation_limit: 3, violations: 0, warnings: [], events: [], auto_submitted: false });
+        // merge any locally saved draft (survive refresh / network issues)
+        let localDraft = null;
+        try {
+          localDraft = JSON.parse(localStorage.getItem(ANSWERS_KEY) || "null");
+        } catch {
+          localDraft = null;
+        }
+        const serverAns = data.answers || { general: {}, tech: {}, coding: {} };
+        const merged = {
+          general: { ...(serverAns.general || {}), ...(localDraft?.general || {}) },
+          tech: { ...(serverAns.tech || {}), ...(localDraft?.tech || {}) },
+          coding: { ...(serverAns.coding || {}), ...(localDraft?.coding || {}) },
+        };
+
+        // Ensure starter templates exist from the beginning (python default)
+        try {
+          const codingQs = Array.isArray(data.session?.coding_questions) ? data.session.coding_questions : [];
+          for (const p of codingQs) {
+            const pid = String(p?.id ?? p?.slug ?? "");
+            if (!pid) continue;
+            const existing = merged.coding?.[pid] || {};
+            const lang = (existing.language || "python").toLowerCase();
+            const code = (existing.code || "").trim();
+            if (!code) {
+              const starter = (p?.starterCode && (p.starterCode[lang] || p.starterCode.python)) || "";
+              merged.coding[pid] = { ...existing, language: lang || "python", code: starter };
+            }
+          }
+        } catch {
+          // ignore
+        }
+        setAnswers(merged);
+        setHydrated(true);
 
         if ((data.session?.status || "") === "submitted") {
           setResult({
@@ -472,11 +555,18 @@ export function SessionRunner({ sectionsOpen = false, navOpen = true, onCloseSec
           });
         }
 
+        const codingProblems = Array.isArray(data.session?.coding_problems) ? data.session.coding_problems : [];
+        const hasCoding = codingProblems.some((item) => !isSqlProblem(item));
+        const hasSql = codingProblems.some((item) => isSqlProblem(item));
         const defaultSection = data.session?.general_questions?.length
           ? "general"
           : data.session?.tech_questions?.length
           ? "tech"
-          : "coding";
+          : hasCoding
+          ? "coding"
+          : hasSql
+          ? "sql"
+          : "general";
         setActiveSection(defaultSection);
         setActiveIndex(0);
         setActiveSub("all");
@@ -509,17 +599,35 @@ export function SessionRunner({ sectionsOpen = false, navOpen = true, onCloseSec
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
+  // Persist drafts so a refresh doesn't reset MCQ choices / code.
+  useEffect(() => {
+    if (!sessionId || !hydrated) return;
+    if (locked) return;
+    try {
+      localStorage.setItem(ANSWERS_KEY, JSON.stringify(answers || {}));
+    } catch {}
+
+    const t = setTimeout(() => {
+      saveProgress(answers);
+    }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, sessionId, hydrated, locked]);
+
   const qList = useMemo(() => {
     if (!session) return [];
+    const codingProblems = Array.isArray(session.coding_problems) ? session.coding_problems : [];
     const base =
       activeSection === "general"
         ? session.general_questions || []
         : activeSection === "tech"
         ? session.tech_questions || []
         : activeSection === "coding"
-        ? session.coding_problems || []
+        ? codingProblems.filter((item) => !isSqlProblem(item))
+        : activeSection === "sql"
+        ? codingProblems.filter((item) => isSqlProblem(item))
         : [];
-    if (activeSection === "coding") return base;
+    if (activeSection === "coding" || activeSection === "sql") return base;
     if (!Array.isArray(base)) return [];
     if (!activeSub || activeSub === "all") return base;
     return base.filter((q) => (q?.subsection || "").toLowerCase() === String(activeSub).toLowerCase());
@@ -611,6 +719,66 @@ export function SessionRunner({ sectionsOpen = false, navOpen = true, onCloseSec
     }
   }
 
+  useEffect(() => {
+    if (!proctorEnabled || locked || loading || !sessionId) return undefined;
+
+    const reportViolation = async (type) => {
+      const now = Date.now();
+      if (now - (proctorCooldownRef.current || 0) < 1200) return;
+      proctorCooldownRef.current = now;
+      try {
+        const token = await tokenGetter();
+        const res = await fetchWithFallback(`/mocktest/sessions/${sessionId}/proctoring/violation`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ type }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+        if (data?.proctoring) setProctoring(data.proctoring);
+        const latest = (data?.proctoring?.warnings || []).slice(-1)[0];
+        if (latest?.message) {
+          try { window.alert(latest.message); } catch {}
+        }
+        if (data?.auto_submitted) {
+          setSession((prev) => prev ? {
+            ...prev,
+            status: "submitted",
+            total_score: 0,
+            total_marks: data?.total_marks ?? prev.total_marks,
+            scores: { ...(prev.scores || {}), general: 0, tech: 0, coding: 0 },
+            analysis: {
+              summary: "This mock test was auto-submitted because proctoring detected screen switching 3/3 times.",
+              overall_feedback: "Score forced to 0 due to proctoring violation.",
+            },
+          } : prev);
+          setResult({
+            total_score: 0,
+            total_marks: data?.total_marks ?? session?.total_marks ?? 0,
+            scores: { general: 0, tech: 0, coding: 0 },
+            analysis: {
+              summary: "This mock test was auto-submitted because proctoring detected screen switching 3/3 times.",
+              overall_feedback: "Score forced to 0 due to proctoring violation.",
+            },
+            coding_details: {},
+          });
+        }
+      } catch {}
+    };
+
+    const onBlur = () => reportViolation("window-blur");
+    const onVisibility = () => {
+      if (document.hidden) reportViolation("tab-hidden");
+    };
+
+    window.addEventListener("blur", onBlur);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("blur", onBlur);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [proctorEnabled, locked, loading, sessionId]);
+
   if (loading) return <div className="px-4 py-10 text-[var(--text)]">Loading test...</div>;
 
   if (err) {
@@ -671,17 +839,19 @@ export function SessionRunner({ sectionsOpen = false, navOpen = true, onCloseSec
                         : "border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg)] hover:shadow-sm"
                     }`}
                   >
-                    <div className="text-sm font-semibold capitalize">{s === "general" ? "General Aptitude" : s === "tech" ? "Tech Aptitude" : "Coding"}</div>
+                    <div className="text-sm font-semibold capitalize">{sectionLabel(s)}</div>
                     <div className="text-xs text-[var(--muted)]">
                       {s === "coding"
-                        ? `${(session.coding_problems || []).length} problems`
+                        ? `${(session.coding_problems || []).filter((item) => !isSqlProblem(item)).length} problems`
+                        : s === "sql"
+                        ? `${(session.coding_problems || []).filter((item) => isSqlProblem(item)).length} problems`
                         : `${(s === "general" ? session.general_questions : session.tech_questions || []).length} questions`}
                     </div>
                   </button>
                 ))}
               </div>
 
-              {activeSection !== "coding" ? (
+              {activeSection !== "coding" && activeSection !== "sql" ? (
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-3">
                   <div className="text-xs font-semibold text-[var(--text)]">Sub-topics</div>
                   <div className="mt-2 space-y-1">
@@ -720,34 +890,41 @@ export function SessionRunner({ sectionsOpen = false, navOpen = true, onCloseSec
           {/* ✅ more padding around heading */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
             <div className="text-sm font-semibold text-[var(--text)]">
-              {activeSection === "coding" ? `Problem ${activeIndex + 1} / ${qList.length}` : `Question ${activeIndex + 1} / ${qList.length}`}
+              {activeSection === "coding" || activeSection === "sql" ? `Problem ${activeIndex + 1} / ${qList.length}` : `Question ${activeIndex + 1} / ${qList.length}`}
             </div>
             <div className="text-xs text-[var(--muted)] mt-1">
               {activeSection === "general"
                 ? "General Aptitude"
                 : activeSection === "tech"
                 ? "Technical Aptitude"
+                : activeSection === "sql"
+                ? "SQL"
                 : "Coding"}
-              {activeSection !== "coding"
+              {activeSection !== "coding" && activeSection !== "sql"
                 ? ` • ${(session?.difficulty || "mixed").toString().toUpperCase()}`
-                : ` • ${(activeItem?.topic || "DSA")} • ${((session?.difficulty || activeItem?.difficulty || "Medium") + "").toString()}`}
+                : ` • ${(activeItem?.topic || (activeSection === "sql" ? "SQL" : "DSA"))} • ${((session?.difficulty || activeItem?.difficulty || "Medium") + "").toString()}`}
             </div>
             <div className="hidden md:flex items-center gap-2">
+              {proctorEnabled ? (
+                <div className="px-2 py-1 rounded-xl border border-amber-300 bg-amber-50 text-xs text-amber-700">
+                  Proctoring: <span className="font-semibold">{Number(proctoring?.violations || 0)} / {Number(proctoring?.violation_limit || 3)}</span>
+                </div>
+              ) : null}
               <div className="px-2 py-1 rounded-xl border border-[var(--border)] text-xs text-[var(--muted)]">
                 Total: <span className="text-[var(--text)] font-semibold">{fmtClock(totalRemaining ?? 0)}</span>
               </div>
               <div className="px-2 py-1 rounded-xl border border-[var(--border)] text-xs text-[var(--muted)]">
-                {activeSection === "coding" ? "Problem" : "Q"}:{" "}
+                {activeSection === "coding" || activeSection === "sql" ? "Problem" : "Q"}:{" "}
                 <span className="text-[var(--text)] font-semibold">{fmtClock(activeRemaining ?? 0)}</span>
               </div>
             </div>
           </div>
 
           {/* ✅ add padding when coding so it doesn’t stick to edges */}
-          <div className={"flex-1 min-h-0 overflow-auto " + (activeSection === "coding" ? "p-4" : "p-6 flex items-center justify-center")}>
+          <div className={"flex-1 min-h-0 overflow-auto " + (activeSection === "coding" || activeSection === "sql" ? "p-4" : "p-6 flex items-center justify-center")}>
             {!activeItem ? (
               <div className="text-sm text-[var(--muted)]">No items in this section.</div>
-            ) : activeSection !== "coding" ? (
+            ) : activeSection !== "coding" && activeSection !== "sql" ? (
               <div className="w-full max-w-5xl space-y-6 py-6">
                   <div className="text-xs text-[var(--muted)]">{activeItem.topic || ""}</div>
                   <div className="text-2xl md:text-3xl font-semibold text-[var(--text)] whitespace-pre-wrap leading-snug">{activeItem.question}</div>
@@ -843,7 +1020,7 @@ export function SessionRunner({ sectionsOpen = false, navOpen = true, onCloseSec
                 {(qList || []).map((it, idx) => {
                   const id = it.id;
                   const answered =
-                    activeSection === "coding"
+                    activeSection === "coding" || activeSection === "sql"
                       ? !!(answers?.coding?.[id]?.lastSubmit?.passed_all || false) || !!(answers?.coding?.[id]?.lastSubmit?.passed || false)
                       : answers?.[activeSection]?.[id] !== undefined && answers?.[activeSection]?.[id] !== null;
                   const isActive = idx === activeIndex;
@@ -865,6 +1042,14 @@ export function SessionRunner({ sectionsOpen = false, navOpen = true, onCloseSec
                   );
                 })}
               </div>
+
+              {proctorEnabled ? (
+                <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+                  <div className="text-sm font-semibold text-amber-800">Proctoring</div>
+                  <div className="mt-1 text-xs text-amber-700">Do not switch tabs or windows during this mock test.</div>
+                  <div className="mt-2 text-sm font-semibold text-amber-800">Violations: {Number(proctoring?.violations || 0)} / {Number(proctoring?.violation_limit || 3)}</div>
+                </div>
+              ) : null}
 
               <div className="mt-3 flex items-center gap-3 text-[11px] text-[var(--muted)]">
                 <span className="inline-flex items-center gap-1">
@@ -914,6 +1099,12 @@ function normalizeCases(data) {
       stderr: t?.stderr ?? t?.error ?? "",
       time_ms: t?.time_ms ?? t?.time ?? null,
       memory_kb: t?.memory_kb ?? t?.memory ?? null,
+      expected_columns: Array.isArray(t?.expected_columns) ? t.expected_columns : [],
+      expected_rows: Array.isArray(t?.expected_rows) ? t.expected_rows : [],
+      actual_columns: Array.isArray(t?.actual_columns) ? t.actual_columns : [],
+      actual_rows: Array.isArray(t?.actual_rows) ? t.actual_rows : [],
+      sql_input_tables: Array.isArray(t?.sql_input_tables) ? t.sql_input_tables : [],
+      is_sql: !!t?.is_sql || Array.isArray(t?.expected_columns) || Array.isArray(t?.actual_columns),
     };
   });
 }
@@ -1008,12 +1199,176 @@ function summarizeFromPayload(payload) {
   };
 }
 
+function parseSqlTables(schemaSql) {
+  const text = String(schemaSql || "");
+  const blocks = [...text.matchAll(/CREATE\s+TABLE\s+([`"\[]?[A-Za-z0-9_]+[`"\]]?)\s*\(([^;]+?)\);/gis)];
+  return blocks.map((m) => {
+    const rawName = String(m[1] || "").replace(/[`"\[\]]/g, "");
+    const body = String(m[2] || "");
+    const lines = body
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => s.replace(/,$/, ""));
+    const columns = [];
+    for (const line of lines) {
+      if (/^(primary|foreign|unique|constraint|check)\b/i.test(line)) continue;
+      const mm = line.match(/^([`"\[]?[A-Za-z0-9_]+[`"\]]?)\s+(.+)$/i);
+      if (!mm) continue;
+      columns.push({
+        name: String(mm[1] || "").replace(/[`"\[\]]/g, ""),
+        type: String(mm[2] || "").trim(),
+      });
+    }
+    return { name: rawName, columns };
+  });
+}
+
+function SqlSchemaTables({ schemaSql }) {
+  const tables = parseSqlTables(schemaSql);
+  if (!tables.length) {
+    return <pre className="text-sm text-[var(--text)] whitespace-pre-wrap font-mono">{schemaSql || "Schema not available."}</pre>;
+  }
+  return (
+    <div className="space-y-5">
+      {tables.map((table, idx) => (
+        <div key={`${table.name}-${idx}`} className="rounded-2xl border border-[var(--border)] overflow-hidden bg-[var(--card)]">
+          <div className="px-4 py-3 border-b border-[var(--border)]">
+            <div className="text-xs text-[var(--muted)]">Table</div>
+            <div className="text-base font-semibold text-[var(--text)]">{table.name}</div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-[var(--bg)] text-[var(--muted)]">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold">Column Name</th>
+                  <th className="px-4 py-3 text-left font-semibold">Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {table.columns.map((col, i) => (
+                  <tr key={`${col.name}-${i}`} className="border-t border-[var(--border)]">
+                    <td className="px-4 py-3 font-mono text-[var(--text)]">{col.name}</td>
+                    <td className="px-4 py-3 font-mono text-[var(--text)]">{col.type}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SqlResultTable({ columns, rows, dense = false }) {
+  const cols = Array.isArray(columns) ? columns : [];
+  const data = Array.isArray(rows) ? rows : [];
+  if (!cols.length) return <div className="text-sm text-[var(--muted)]">No output columns.</div>;
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <table className="min-w-full text-sm">
+        <thead className="bg-[var(--bg)] text-[var(--muted)]">
+          <tr>
+            {cols.map((col, idx) => (
+              <th key={`${col}-${idx}`} className={`${dense ? "px-3 py-2" : "px-4 py-3"} text-left font-semibold whitespace-nowrap`}>{col}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.length ? data.map((row, ridx) => (
+            <tr key={ridx} className="border-t border-[var(--border)]">
+              {cols.map((_, cidx) => (
+                <td key={cidx} className={`${dense ? "px-3 py-2" : "px-4 py-3"} text-[var(--text)] whitespace-nowrap`}>{Array.isArray(row) ? (row[cidx] == null ? "null" : String(row[cidx])) : ""}</td>
+              ))}
+            </tr>
+          )) : (
+            <tr className="border-t border-[var(--border)]">
+              <td colSpan={cols.length} className={`${dense ? "px-3 py-2" : "px-4 py-3"} text-[var(--muted)]`}>Empty result</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SqlResultCard({ title, columns, rows }) {
+  const hasColumns = Array.isArray(columns) && columns.length > 0;
+  const hasRows = Array.isArray(rows) && rows.length > 0;
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
+      <div className="text-xs font-semibold text-[var(--muted)] mb-2">{title}</div>
+      {hasColumns ? <SqlResultTable columns={columns} rows={rows} dense /> : (
+        <div className="text-xs whitespace-pre-wrap text-[var(--text)]">{hasRows ? JSON.stringify(rows) : "(empty)"}</div>
+      )}
+    </div>
+  );
+}
+
+function SqlDescriptionPanel({ problem }) {
+  const sqlSchemaText = String(problem?.sql_meta?.schema_sql || "").trim();
+  const statement = String(problem?.statement || "").replace(/\n\nSchema:\n[\s\S]*$/i, "").trim();
+  const samples = Array.isArray(problem?.sql_meta?.sample_datasets) ? problem.sql_meta.sample_datasets : [];
+  const tables = parseSqlTables(sqlSchemaText);
+  return (
+    <div className="space-y-5 text-[var(--text)]">
+      <div className="whitespace-pre-wrap text-sm leading-6">{statement || "-"}</div>
+      {!!tables.length && (
+        <div className="space-y-3">
+          <div className="text-lg font-semibold">SQL Schema</div>
+          <SqlSchemaTables schemaSql={sqlSchemaText} />
+        </div>
+      )}
+      {samples.length ? (
+        <div className="space-y-4">
+          <div className="text-lg font-semibold">Examples</div>
+          {samples.map((sample, idx) => (
+            <div key={idx} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-3">
+              <div className="text-sm font-semibold">Example {idx + 1}</div>
+              <div>
+                <div className="text-xs font-semibold text-[var(--muted)] mb-1">Input</div>
+                <pre className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 text-xs whitespace-pre-wrap">{sample?.setup_sql || "-"}</pre>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-[var(--muted)] mb-1">Output</div>
+                <SqlResultTable columns={sample?.expected_columns || []} rows={sample?.expected_rows || []} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {(problem?.constraints?.length || problem?.input_format || problem?.inputFormat || problem?.input || problem?.io?.input) ? (
+        <div className="space-y-4">
+          {(problem?.input_format || problem?.inputFormat || problem?.input || problem?.io?.input) ? (
+            <div>
+              <div className="text-lg font-semibold">Input Format</div>
+              <div className="mt-2 whitespace-pre-wrap text-sm">{problem?.input_format || problem?.inputFormat || problem?.input || problem?.io?.input}</div>
+            </div>
+          ) : null}
+          {problem?.constraints?.length ? (
+            <div>
+              <div className="text-lg font-semibold">Constraints</div>
+              <ul className="mt-2 list-disc pl-5 text-sm space-y-1">
+                {problem.constraints.map((c, i) => <li key={i}>{c}</li>)}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // =============================
 // ✅ Coding Panel
 // =============================
 function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, locked, timeLeftSec, onSolved, sessionDifficulty }) {
-  const lang = submission.language || "python";
-  const code = submission.code || "";
+  const isProblemSql = (problem?.type || "").toLowerCase() === "sql";
+  const lang = isProblemSql ? "sql" : (submission.language || "python");
+  const isSql = isProblemSql || (lang || "").toLowerCase() === "sql";
+  const code = typeof submission.code === "string" ? submission.code : (submission.code ?? "");
+  const codeIsEmpty = String(code || "").trim().length === 0;
   const pid = problem?.id || "";
   const codeKey = `zenith_code_draft_${sessionId}_${pid}_${lang}`;
 
@@ -1021,20 +1376,21 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
     if (!pid) return;
     try {
       const saved = localStorage.getItem(codeKey);
-      if (saved && !code) {
-        onChange({ code: saved });
+      if (saved && (codeIsEmpty || isSql)) {
+        if (String(code || "") !== saved) onChange({ language: lang, code: saved });
         return;
       }
     } catch {}
-    if (!code) {
+    const looksLikePython = ["def solve", "__main__", "import sys"].some((x) => String(code || "").includes(x));
+    if (codeIsEmpty || (isSql && ((submission?.language || "").toLowerCase() !== "sql" || looksLikePython))) {
       const starter =
         (problem?.starterCode &&
-          (problem.starterCode[lang] || problem.starterCode.python || problem.starterCode.java || problem.starterCode.cpp)) ||
+          (problem.starterCode[lang] || problem.starterCode.sql || problem.starterCode.python || problem.starterCode.java || problem.starterCode.cpp)) ||
         defaultStarter(lang);
-      onChange({ code: starter || defaultStarter(lang) });
+      onChange({ language: lang, code: starter || defaultStarter(lang) });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pid, lang]);
+  }, [pid, lang, codeKey, isSql]);
 
   // Keep per-language drafts so switching languages shows correct starter/template,
   // similar to LeetCode.
@@ -1048,6 +1404,7 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
     const starter =
       (problem?.starterCode &&
         (problem.starterCode[l] ||
+          problem.starterCode.sql ||
           problem.starterCode.python ||
           problem.starterCode.java ||
           problem.starterCode.c ||
@@ -1062,7 +1419,7 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
     if (nl === curLang) return;
     // persist current draft
     try {
-      if (pid) localStorage.setItem(getDraftKey(curLang), code || "");
+      if (pid) localStorage.setItem(getDraftKey(curLang), String(code || ""));
     } catch {}
     // load new draft or starter
     let nextCode = "";
@@ -1071,7 +1428,7 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
     } catch {
       nextCode = "";
     }
-    if (!nextCode) nextCode = loadTemplate(nl);
+    if (!String(nextCode || "").trim()) nextCode = loadTemplate(nl);
     onChange({ language: nl, code: nextCode });
   }
 
@@ -1095,17 +1452,31 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
   const [submitResult, setSubmitResult] = useState(submission.lastSubmit || null);
   const [showHidden, setShowHidden] = useState(false);
   const [openCaseId, setOpenCaseId] = useState(null);
+  const [leftTab, setLeftTab] = useState("description");
+  const [rightTab, setRightTab] = useState("code");
 
   const analysisSrc = submitResult || runResult;
 
-  const samplesRaw = Array.isArray(problem?.samples) ? problem.samples.slice(0, 4) : [];
+  const samplesRaw = isSql
+    ? ((problem?.sql_meta?.sample_datasets || []).slice(0, 4).map((d) => ({
+        input: [problem?.sql_meta?.schema_sql || "", d?.setup_sql || ""].filter(Boolean).join("\n\n"),
+        expectedText: [
+          (d?.expected_columns || []).length ? (d.expected_columns || []).join(" | ") : "",
+          ...((d?.expected_rows || []).map((row) =>
+            Array.isArray(row) ? row.map((v) => (v == null ? "" : String(v))).join(" | ") : String(row)
+          )),
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      })))
+    : (Array.isArray(problem?.samples) ? problem.samples.slice(0, 4) : []);
   const samples = samplesRaw
-    .map((tc) => ({ input: tc?.input ?? tc?.stdin ?? "", output: tc?.output ?? tc?.expected ?? "" }))
+    .map((tc) => ({ input: tc?.input ?? tc?.stdin ?? "", output: tc?.output ?? tc?.expected ?? tc?.expectedText ?? "" }))
     .filter((tc) => String(tc.input || "").trim().length > 0);
 
   const timeLocked = timeLeftSec != null && timeLeftSec <= 0;
   const status = String(submission?.status || submission?.verdict || "").toLowerCase();
-  const finalized = !!submission?.finalized || status === "accepted" || status === "ac";
+  const finalized = !!submission?.finalized;
   const allLocked = !!locked || timeLocked || finalized;
 
   useEffect(() => {
@@ -1161,6 +1532,7 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
   async function runSamples() {
     if (!samples.length || allLocked) return;
     setRunningSamples(true);
+    setSubmitResult(null);
     setRunResult(null);
     try {
       const res = await fetchWithFallback("/mocktest/code/run", {
@@ -1169,17 +1541,27 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
         body: JSON.stringify({
           language: lang,
           source_code: code,
-          tests: samples.map((s) => ({ stdin: s.input, expected: s.output })),
+          problem_type: isSql ? "sql" : "code",
+          schema_sql: isSql ? (problem?.sql_meta?.schema_sql || "") : "",
+          tests: isSql
+            ? ((problem?.sql_meta?.sample_datasets || []).map((d) => ({
+                schema_sql: problem?.sql_meta?.schema_sql || "",
+                setup_sql: d?.setup_sql || "",
+                expected_rows: d?.expected_rows || [],
+                expected_columns: d?.expected_columns || [],
+                label: d?.label || "Sample",
+              })))
+            : samples.map((s) => ({ stdin: s.input, expected: s.output })),
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Run failed");
       setRunResult(data);
-      onChange({ lastRun: data });
+      onChange({ lastRun: data, lastSubmit: null });
     } catch (e) {
       const errObj = { error: e.message || "Run failed" };
       setRunResult(errObj);
-      onChange({ lastRun: errObj });
+      onChange({ lastRun: errObj, lastSubmit: null });
     } finally {
       setRunningSamples(false);
     }
@@ -1261,6 +1643,28 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
     return null;
   })();
 
+  const sqlSchemaText = String(problem?.sql_meta?.schema_sql || "").trim();
+  const pandasSchemaText = String(problem?.sql_meta?.pandas_schema || "").trim();
+
+  useEffect(() => {
+    if (!isSql) {
+      setLeftTab("description");
+      setRightTab("code");
+    }
+  }, [isSql]);
+  useEffect(() => {
+    if (rightTab !== "code" || !pid) return;
+    let nextCode = "";
+    try {
+      nextCode = localStorage.getItem(codeKey) || localStorage.getItem(getDraftKey(lang)) || "";
+    } catch {}
+    if (!String(nextCode || "").trim()) nextCode = String(code || "").trim() ? String(code || "") : loadTemplate(lang);
+    if (String(nextCode || "").trim() && String(code || "") !== String(nextCode || "")) {
+      onChange({ language: lang, code: nextCode });
+    }
+  }, [rightTab, pid, lang, codeKey]);
+
+
   return (
     <div className={"h-full min-h-0 flex flex-col gap-4 overflow-hidden " + (editorTheme === "dark" ? "panel-dark" : "panel-light")}>
       {/* ✅ extra padding around header + buttons */}
@@ -1269,10 +1673,10 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
           <div className="min-w-0">
             <div className="text-sm font-semibold text-[var(--text)] truncate">
               {problem?.id ? `${problem.id}. ` : ""}
-              {problem?.title || "Coding"}
+              {problem?.title || (isSql ? "SQL" : "Coding")}
             </div>
             <div className="text-xs text-[var(--muted)]">
-              {(problem?.topic || "DSA")} • {(sessionDifficulty || problem?.difficulty || "Medium")}
+              {(problem?.topic || (isSql ? "SQL" : "DSA"))} • {(sessionDifficulty || problem?.difficulty || "Medium")}
               {timeLeftSec != null ? ` • Time left: ${fmtClock(timeLeftSec)}` : ""}
             </div>
           </div>
@@ -1307,12 +1711,19 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
             <select
               value={lang}
               onChange={(e) => handleLanguageChange(e.target.value)}
-              className="h-9 px-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm"
+              disabled={isSql}
+              className="h-9 px-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm disabled:opacity-70"
             >
-              <option value="python">Python</option>
-              <option value="java">Java</option>
-              <option value="c">C</option>
-              <option value="cpp">C++</option>
+              {isSql ? (
+                <option value="sql">SQL</option>
+              ) : (
+                <>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                  <option value="c">C</option>
+                  <option value="cpp">C++</option>
+                </>
+              )}
             </select>
           </div>
         </div>
@@ -1324,51 +1735,57 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
           style={{ width: `${leftPct}%` }}
           className="rounded-2xl bg-[var(--bg)] border border-[var(--border)] overflow-hidden flex flex-col min-h-0 min-w-[280px] max-w-[70%]"
         >
-          <div className="px-4 py-2 border-b border-[var(--border)] text-xs text-[var(--muted)] flex items-center justify-between">
-            <div>Description</div>
+          <div className="px-4 py-2 border-b border-[var(--border)] text-xs text-[var(--muted)] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button type="button" onClick={() => setLeftTab("description")} className={`px-2 py-1 rounded-lg border text-[11px] ${leftTab === "description" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>Description</button>
+              {isSql ? <button type="button" onClick={() => setLeftTab("sql_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${leftTab === "sql_schema" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>SQL Schema</button> : null}
+              {isSql ? <button type="button" onClick={() => setLeftTab("pandas_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${leftTab === "pandas_schema" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>Pandas Schema</button> : null}
+            </div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-1 rounded-lg border border-[var(--border)] text-[11px]">{sessionDifficulty || problem?.difficulty || "Medium"}</span>
-              <span className="px-2 py-1 rounded-lg border border-[var(--border)] text-[11px]">{problem?.topic || "DSA"}</span>
+              <span className="px-2 py-1 rounded-lg border border-[var(--border)] text-[11px]">{problem?.topic || (isSql ? "SQL" : "DSA")}</span>
             </div>
           </div>
 
           {/* Make the problem description independently scrollable so the panel fits the screen */}
           <div className="p-4 flex-1 overflow-auto">
-            <div className="text-sm text-[var(--text)] whitespace-pre-wrap">{problem?.statement || "-"}</div>
+            {leftTab === "description" ? (isSql ? <SqlDescriptionPanel problem={problem} /> : <>
+              <div className="text-sm text-[var(--text)] whitespace-pre-wrap">{problem?.statement || "-"}</div>
 
-            {/* ✅ Input format (if provided by backend) */}
-            {(problem?.input_format || problem?.inputFormat || problem?.input || problem?.io?.input) ? (
-              <div className="mt-4">
-                <div className="text-xs text-[var(--muted)]">Input Format</div>
-                <pre className="mt-1 text-sm text-[var(--text)] whitespace-pre-wrap">{problem?.input_format || problem?.inputFormat || problem?.input || problem?.io?.input}</pre>
-              </div>
-            ) : null}
+              {(problem?.input_format || problem?.inputFormat || problem?.input || problem?.io?.input) ? (
+                <div className="mt-4">
+                  <div className="text-xs text-[var(--muted)]">Input Format</div>
+                  <pre className="mt-1 text-sm text-[var(--text)] whitespace-pre-wrap">{problem?.input_format || problem?.inputFormat || problem?.input || problem?.io?.input}</pre>
+                </div>
+              ) : null}
 
+              {problem?.constraints?.length ? (
+                <div className="mt-4">
+                  <div className="text-xs text-[var(--muted)]">Constraints</div>
+                  <ul className="mt-1 list-disc pl-5 text-sm text-[var(--text)]">
+                    {problem.constraints.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
-            {problem?.constraints?.length ? (
-              <div className="mt-4">
-                <div className="text-xs text-[var(--muted)]">Constraints</div>
-                <ul className="mt-1 list-disc pl-5 text-sm text-[var(--text)]">
-                  {problem.constraints.map((c, i) => (
-                    <li key={i}>{c}</li>
+              {samples.length ? (
+                <div className="mt-4 space-y-2">
+                  <div className="text-xs text-[var(--muted)]">Samples</div>
+                  {samples.map((s, i) => (
+                    <div key={i} className="rounded-xl border border-[var(--border)] p-3">
+                      <div className="text-[11px] text-[var(--muted)]">Input</div>
+                      <pre className="text-sm text-[var(--text)] whitespace-pre-wrap">{s.input}</pre>
+                      <div className="text-[11px] text-[var(--muted)] mt-2">Output</div>
+                      <pre className="text-sm text-[var(--text)] whitespace-pre-wrap">{s.output}</pre>
+                    </div>
                   ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {samples.length ? (
-              <div className="mt-4 space-y-2">
-                <div className="text-xs text-[var(--muted)]">Samples</div>
-                {samples.map((s, i) => (
-                  <div key={i} className="rounded-xl border border-[var(--border)] p-3">
-                    <div className="text-[11px] text-[var(--muted)]">Input</div>
-                    <pre className="text-sm text-[var(--text)] whitespace-pre-wrap">{s.input}</pre>
-                    <div className="text-[11px] text-[var(--muted)] mt-2">Output</div>
-                    <pre className="text-sm text-[var(--text)] whitespace-pre-wrap">{s.output}</pre>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+                </div>
+              ) : null}
+            </>) : null}
+            {leftTab === "sql_schema" ? <SqlSchemaTables schemaSql={sqlSchemaText} /> : null}
+            {leftTab === "pandas_schema" ? <pre className="text-sm text-[var(--text)] whitespace-pre-wrap font-mono">{pandasSchemaText || "Pandas schema not available."}</pre> : null}
           </div>
         </div>
 
@@ -1384,29 +1801,32 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
             style={{ height: resultsCollapsed ? "100%" : `${topPct}%` }}
             className="rounded-2xl bg-[var(--bg)] border border-[var(--border)] overflow-hidden flex flex-col min-h-0 relative"
           >
-            <div className="px-4 py-2 border-b border-[var(--border)] text-xs text-[var(--muted)] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span>Code</span>
+            <div className="px-4 py-2 border-b border-[var(--border)] text-xs text-[var(--muted)] flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button type="button" onClick={() => setRightTab("code")} className={`px-2 py-1 rounded-lg border text-[11px] ${rightTab === "code" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>Code</button>
+                {isSql ? <button type="button" onClick={() => setRightTab("sql_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${rightTab === "sql_schema" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>SQL Schema</button> : null}
+                {isSql ? <button type="button" onClick={() => setRightTab("pandas_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${rightTab === "pandas_schema" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>Pandas Schema</button> : null}
                 {runningSamples ? <span className="text-[11px]">• Running</span> : null}
                 {submittingAll ? <span className="text-[11px]">• Submitting</span> : null}
                 {wallMs != null ? <span className="text-[11px]">• {wallMs} ms</span> : null}
               </div>
-              <div className="text-[11px] text-[var(--muted)]">{allLocked ? "Locked" : "Editable"}</div>
+              <div className="text-[11px] text-[var(--muted)]">{rightTab === "code" ? (allLocked ? "Locked" : "Editable") : "Read only"}</div>
             </div>
 
             <Editor
-              language={lang === "cpp" ? "cpp" : lang}
-              value={code}
-              onChange={(v) => {
+              key={`${pid}-${lang}-${rightTab}-${editorTheme}`}
+              language={rightTab === "pandas_schema" ? "python" : (rightTab === "sql_schema" ? "sql" : (lang === "cpp" ? "cpp" : isSql ? "sql" : lang))}
+              value={rightTab === "code" ? code : (rightTab === "sql_schema" ? sqlSchemaText : pandasSchemaText)}
+              onChange={rightTab === "code" ? ((v) => {
                 const nv = v ?? "";
                 onChange({ code: nv });
                 try {
                   if (pid) localStorage.setItem(codeKey, nv);
                 } catch {}
-              }}
+              }) : undefined}
               theme={editorTheme === "dark" ? "vs-dark" : "vs"}
               options={{
-                readOnly: allLocked,
+                readOnly: rightTab !== "code" || allLocked,
                 minimap: { enabled: false },
                 fontSize: 14,
                 scrollBeyondLastLine: false,
@@ -1467,7 +1887,7 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
                   {showHidden ? <EyeOff size={16} /> : <Eye size={16} />}
                   {showHidden ? "Hide hidden" : "Show hidden"}
                 </button>
-                <div className="text-xs text-[var(--muted)] hidden md:block">Run → samples only • Submit → samples + hidden</div>
+                <div className="text-xs text-[var(--muted)] hidden md:block">Run → samples only • Submit → samples + hidden datasets</div>
               </div>
             </div>
 
@@ -1476,19 +1896,23 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
                                 <div className="space-y-3">
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
                     <div className="text-sm font-semibold text-[var(--text)]">Code Analysis</div>
-                    <div className="mt-2 grid gap-3 md:grid-cols-3">
+                    <div className={`mt-2 grid gap-3 ${isSql ? "md:grid-cols-1" : "md:grid-cols-3"}`}>
                       <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
                         <div className="text-xs font-semibold text-[var(--muted)] mb-1">Wall runtime</div>
                         <div className="text-sm text-[var(--text)]">{wallMs != null ? `${wallMs} ms` : "—"}</div>
                       </div>
-                      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
-                        <div className="text-xs font-semibold text-[var(--muted)] mb-1">Time complexity</div>
-                        <div className="text-sm text-[var(--text)]">{analysisSrc?.timeComplexity || "—"}</div>
-                      </div>
-                      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
-                        <div className="text-xs font-semibold text-[var(--muted)] mb-1">Space complexity</div>
-                        <div className="text-sm text-[var(--text)]">{analysisSrc?.spaceComplexity || "—"}</div>
-                      </div>
+                      {!isSql ? (
+                        <>
+                          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
+                            <div className="text-xs font-semibold text-[var(--muted)] mb-1">Time complexity</div>
+                            <div className="text-sm text-[var(--text)]">{analysisSrc?.timeComplexity || "—"}</div>
+                          </div>
+                          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
+                            <div className="text-xs font-semibold text-[var(--muted)] mb-1">Space complexity</div>
+                            <div className="text-sm text-[var(--text)]">{analysisSrc?.spaceComplexity || "—"}</div>
+                          </div>
+                        </>
+                      ) : null}
                     </div>
                     <div className="mt-3 text-xs text-[var(--muted)]">
                       Tip: Run checks samples only. Submit validates samples + hidden.
@@ -1615,22 +2039,39 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
 
                                 {/* Expanded details (sample always, hidden only when Show hidden is enabled) */}
                                 {isOpen ? (
-                                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                                  <div className="mt-3 grid gap-3 md:grid-cols-1">
                                     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
                                       <div className="text-xs font-semibold text-[var(--muted)] mb-1">Input</div>
                                       <pre className="text-xs whitespace-pre-wrap text-[var(--text)]">{c.stdin || "(empty)"}</pre>
                                     </div>
-                                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
-                                      <div className="text-xs font-semibold text-[var(--muted)] mb-1">Expected</div>
-                                      <pre className="text-xs whitespace-pre-wrap text-[var(--text)]">{c.expected || "(empty)"}</pre>
-                                    </div>
-                                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
-                                      <div className="text-xs font-semibold text-[var(--muted)] mb-1">Your Output</div>
-                                      <pre className="text-xs whitespace-pre-wrap text-[var(--text)]">
-                                        {(c.stdout || c.stderr) ? `${c.stdout || ""}${c.stderr ? `
+                                    {c.is_sql && (c.expected_columns.length || c.actual_columns.length) ? (
+                                      <>
+                                        <SqlResultCard title="Expected" columns={c.expected_columns} rows={c.expected_rows} />
+                                        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
+                                          <div className="text-xs font-semibold text-[var(--muted)] mb-2">Your Output</div>
+                                          {c.stderr ? <pre className="text-xs whitespace-pre-wrap text-red-500 mb-2">{c.stderr}</pre> : null}
+                                          {c.actual_columns.length ? (
+                                            <SqlResultTable columns={c.actual_columns} rows={c.actual_rows} dense />
+                                          ) : (
+                                            <pre className="text-xs whitespace-pre-wrap text-[var(--text)]">{c.stdout || "(empty)"}</pre>
+                                          )}
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
+                                          <div className="text-xs font-semibold text-[var(--muted)] mb-1">Expected</div>
+                                          <pre className="text-xs whitespace-pre-wrap text-[var(--text)]">{c.expected || "(empty)"}</pre>
+                                        </div>
+                                        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
+                                          <div className="text-xs font-semibold text-[var(--muted)] mb-1">Your Output</div>
+                                          <pre className="text-xs whitespace-pre-wrap text-[var(--text)]">
+                                            {(c.stdout || c.stderr) ? `${c.stdout || ""}${c.stderr ? `
 ${c.stderr}` : ""}` : "(empty)"}
-                                      </pre>
-                                    </div>
+                                          </pre>
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
                                 ) : null}
                               </div>

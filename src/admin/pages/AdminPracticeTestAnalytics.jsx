@@ -1,30 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getPreferredProfilePhoto } from "../../utils/profilePhoto.js";
 import Avatar from "../../components/common/Avatar.jsx";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+
 import { useAuth } from "../../auth/AuthProvider.jsx";
 import { BarChart, Donut, SimplePie } from "../components/Charts.jsx";
 
-function StatCard({ label, value, sub }) {
-  return (
-    <div className="ui-card p-5">
-      <div className="text-sm text-[var(--muted)]">{label}</div>
-      <div className="text-3xl font-bold mt-2 text-[var(--text)]">{value}</div>
-      {sub ? <div className="text-xs text-[var(--muted)] mt-1">{sub}</div> : null}
-    </div>
-  );
-}
-
-function initials(name = "") {
-  const parts = String(name).trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return "U";
-  const a = parts[0]?.[0] || "U";
-  const b = parts.length > 1 ? (parts[parts.length - 1]?.[0] || "") : "";
-  return (a + b).toUpperCase();
-}
-
-export default function AdminMockTestAnalytics() {
+export default function AdminPracticeTestAnalytics() {
   const { token, apiBase } = useAuth();
   const navigate = useNavigate();
 
@@ -44,7 +27,7 @@ export default function AdminMockTestAnalytics() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${apiBase}/admin/mocktest-analytics`, {
+      const res = await fetch(`${apiBase}/admin/practicetest-analytics`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const j = await res.json().catch(() => ({}));
@@ -63,7 +46,7 @@ export default function AdminMockTestAnalytics() {
     setLoadingUsers(true);
     setUsersErr("");
     try {
-      const res = await fetch(`${apiBase}/admin/mocktest-analytics/users`, {
+      const res = await fetch(`${apiBase}/admin/practicetest-analytics/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const j = await res.json().catch(() => ({}));
@@ -92,19 +75,6 @@ export default function AdminMockTestAnalytics() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  const timelineBars = useMemo(() => {
-    const t = data?.timeline || [];
-    return t.map((x) => ({ label: (x.day || "").slice(5), value: x.count || 0 }));
-  }, [data]);
-
-  const modePie = useMemo(() => {
-    const arr = data?.modeBreakdown || [];
-    const colors = ["#60a5fa", "#22c55e", "#f59e0b", "#a78bfa", "#f87171", "#06b6d4"]; // admin-only
-    return arr
-      .slice(0, 6)
-      .map((m, i) => ({ label: m.mode, value: m.count, color: colors[i % colors.length] }));
-  }, [data]);
-
   const filteredRows = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return rows;
@@ -115,6 +85,20 @@ export default function AdminMockTestAnalytics() {
     });
   }, [rows, q]);
 
+  const timelineBars = useMemo(() => {
+    const t = data?.timeline || [];
+    return t.map((x) => ({ label: (x.day || "").slice(5), value: x.count || 0 }));
+  }, [data]);
+
+  const modePie = useMemo(() => {
+    const arr = data?.modeBreakdown || [];
+    // Admin-only colors
+    const colors = ["#60a5fa", "#22c55e", "#f59e0b", "#a78bfa", "#f87171", "#06b6d4"];
+    return arr
+      .slice(0, 6)
+      .map((m, i) => ({ label: m.mode, value: m.count, color: colors[i % colors.length] }));
+  }, [data]);
+
   const passRate = Number(data?.passRate || 0);
   const avgScore = Number(data?.avgScorePercent || 0);
 
@@ -122,11 +106,12 @@ export default function AdminMockTestAnalytics() {
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text)]">Mock Test Analytics</h1>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Practice Test Analytics</h1>
           <p className="text-sm text-[var(--muted)]">
-            {tab === "overview" ? "System-wide overview of mock test sessions." : "User-wise performance across mock tests."}
+            {tab === "overview" ? "System-wide overview of practice test sessions." : "User-wise performance across practice tests."}
           </p>
         </div>
+
         <div className="flex items-center gap-2">
           <div className="flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] p-1">
             <button
@@ -167,10 +152,24 @@ export default function AdminMockTestAnalytics() {
           ) : (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <StatCard label="Total sessions" value={data.totalSessions ?? 0} />
-                <StatCard label="Unique users" value={data.uniqueUsers ?? 0} />
-                <StatCard label="Submitted" value={data.submittedSessions ?? 0} sub="Sessions with a score" />
-                <StatCard label="Passed" value={data.passedSessions ?? 0} sub="Score ≥ 60%" />
+                <div className="ui-card p-5">
+                  <div className="text-sm text-[var(--muted)]">Total sessions</div>
+                  <div className="text-3xl font-bold mt-2 text-[var(--text)]">{data.totalSessions ?? 0}</div>
+                </div>
+                <div className="ui-card p-5">
+                  <div className="text-sm text-[var(--muted)]">Unique users</div>
+                  <div className="text-3xl font-bold mt-2 text-[var(--text)]">{data.uniqueUsers ?? 0}</div>
+                </div>
+                <div className="ui-card p-5">
+                  <div className="text-sm text-[var(--muted)]">Submitted</div>
+                  <div className="text-3xl font-bold mt-2 text-[var(--text)]">{data.submittedSessions ?? 0}</div>
+                  <div className="text-xs text-[var(--muted)] mt-1">Sessions with a score</div>
+                </div>
+                <div className="ui-card p-5">
+                  <div className="text-sm text-[var(--muted)]">Passed</div>
+                  <div className="text-3xl font-bold mt-2 text-[var(--text)]">{data.passedSessions ?? 0}</div>
+                  <div className="text-xs text-[var(--muted)] mt-1">Score ≥ 60%</div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
@@ -225,7 +224,7 @@ export default function AdminMockTestAnalytics() {
 
           <div className="bg-[var(--card)] text-[var(--text)] rounded-2xl border border-[var(--border)] shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
-              <div className="font-semibold text-[var(--text)]">User-wise mock test performance</div>
+              <div className="font-semibold text-[var(--text)]">User-wise practice test performance</div>
               {loadingUsers && <div className="text-sm text-[var(--muted)]">Loading…</div>}
             </div>
             <div className="overflow-x-auto">
@@ -250,7 +249,7 @@ export default function AdminMockTestAnalytics() {
                       <tr
                         key={r.uid}
                         className="hover:bg-[rgba(16,185,129,0.06)] cursor-pointer"
-                        onClick={() => navigate(`/admin/user/${encodeURIComponent(r.uid)}?tab=mocktests`)}
+                        onClick={() => navigate(`/admin/user/${encodeURIComponent(r.uid)}?tab=practicetests`)}
                         title="Open user drilldown"
                       >
                         <td className="px-6 py-3">
@@ -267,38 +266,42 @@ export default function AdminMockTestAnalytics() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-3 text-right">{r.sessions ?? 0}</td>
-                        <td className="px-6 py-3 text-right">{r.submitted ?? 0}</td>
-                        <td className="px-6 py-3 text-right">{r.passed ?? 0}</td>
-                        <td className="px-6 py-3 text-right font-semibold">{Number(r.passRate || 0).toFixed(2)}%</td>
-                        <td className="px-6 py-3 text-right">{Number(r.avgScorePercent || 0).toFixed(2)}%</td>
+                        <td className="text-right px-6 py-3">{r.sessions ?? 0}</td>
+                        <td className="text-right px-6 py-3">{r.submitted ?? 0}</td>
+                        <td className="text-right px-6 py-3">{r.passed ?? 0}</td>
+                        <td className="text-right px-6 py-3 font-semibold">{Number(r.passRate || 0).toFixed(2)}%</td>
+                        <td className="text-right px-6 py-3 font-semibold">{Number(r.avgScorePercent || 0).toFixed(2)}%</td>
                         <td className="px-6 py-3">
                           <div className="flex flex-wrap gap-2">
                             {modes.map((m) => (
                               <span
                                 key={m.mode}
-                                className="px-2 py-1 rounded-xl text-xs border border-[var(--border)] bg-[var(--bg)]"
+                                className="px-2 py-1 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-xs"
                               >
                                 {m.mode}: {m.count}
                               </span>
                             ))}
-                            {!modes.length ? <span className="text-xs text-[var(--muted)]">—</span> : null}
                           </div>
                         </td>
                       </tr>
                     );
                   })}
-
-                  {!loadingUsers && (!filteredRows || filteredRows.length === 0) && (
+                  {!loadingUsers && (!filteredRows || filteredRows.length === 0) ? (
                     <tr>
-                      <td className="px-6 py-10 text-center text-[var(--muted)]" colSpan={7}>
+                      <td colSpan={7} className="px-6 py-6 text-[var(--muted)]">
                         No users found.
                       </td>
                     </tr>
-                  )}
+                  ) : null}
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <div className="mt-4 text-xs text-[var(--muted)]">
+            Tip: Open a user profile to view detailed session logs.
+            {" "}
+            <Link to="/admin/users" className="underline">Manage users</Link>
           </div>
         </>
       )}

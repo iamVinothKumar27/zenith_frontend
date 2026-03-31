@@ -38,7 +38,7 @@ export default function StartMockTest() {
   const navigate = useNavigate();
 
   const mode = (sp.get("mode") || "general").toLowerCase();
-  const normalizedMode = ["general", "tech", "coding", "all"].includes(mode) ? mode : "general";
+  const normalizedMode = ["general", "tech", "coding", "all", "sql"].includes(mode) ? mode : "general";
 
   const [title, setTitle] = useState("Mock Test");
   const [difficulty, setDifficulty] = useState("mixed");
@@ -49,6 +49,7 @@ export default function StartMockTest() {
   const [g, setG] = useState(10);
   const [t, setT] = useState(10);
   const [c, setC] = useState(2);
+  const [s, setS] = useState(2);
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -58,10 +59,12 @@ export default function StartMockTest() {
     if (normalizedMode === "general") setCount(15);
     if (normalizedMode === "tech") setCount(15);
     if (normalizedMode === "coding") setCount(2);
+    if (normalizedMode === "sql") setCount(3);
     if (normalizedMode === "all") {
       setG(10);
       setT(10);
       setC(2);
+      setS(2);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [normalizedMode]);
@@ -70,6 +73,7 @@ export default function StartMockTest() {
     if (normalizedMode === "general") return "General Aptitude";
     if (normalizedMode === "tech") return "Tech Aptitude";
     if (normalizedMode === "coding") return "Coding";
+    if (normalizedMode === "sql") return "SQL";
     return "All-in-One";
   }, [normalizedMode]);
 
@@ -84,9 +88,12 @@ export default function StartMockTest() {
               general: clampInt(g, 0, 100),
               tech: clampInt(t, 0, 100),
               coding: clampInt(c, 0, 20),
+              sql: clampInt(s, 0, 10),
             }
           : normalizedMode === "coding"
           ? { general: 0, tech: 0, coding: clampInt(count, 1, 20) }
+          : normalizedMode === "sql"
+          ? { general: 0, tech: 0, coding: clampInt(count, 1, 10) }
           : normalizedMode === "tech"
           ? { general: 0, tech: clampInt(count, 1, 60), coding: 0 }
           : { general: clampInt(count, 1, 60), tech: 0, coding: 0 };
@@ -102,6 +109,7 @@ export default function StartMockTest() {
           mode: normalizedMode,
           difficulty,
           pattern,
+          sql: normalizedMode === "sql",
         }),
       });
       const data = await res.json();
@@ -168,7 +176,7 @@ export default function StartMockTest() {
             {normalizedMode !== "all" ? (
               <div>
                 <div className="text-sm font-semibold text-[var(--text)]">
-                  No. of {normalizedMode === "coding" ? "problems" : "questions"}
+                  No. of {normalizedMode === "coding" || normalizedMode === "sql" ? "problems" : "questions"}
                 </div>
                 <input
                   type="number"
@@ -181,7 +189,7 @@ export default function StartMockTest() {
             ) : (
               <div>
                 <div className="text-sm font-semibold text-[var(--text)]">Pattern (All-in-One)</div>
-                <div className="mt-2 grid grid-cols-3 gap-2">
+                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
                   <div>
                     <div className="text-[11px] text-[var(--muted)]">General</div>
                     <input
@@ -209,6 +217,16 @@ export default function StartMockTest() {
                       min={0}
                       value={c}
                       onChange={(e) => setC(e.target.value)}
+                      className="mt-1 w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-[var(--muted)]">SQL</div>
+                    <input
+                      type="number"
+                      min={0}
+                      value={s}
+                      onChange={(e) => setS(e.target.value)}
                       className="mt-1 w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] outline-none"
                     />
                   </div>

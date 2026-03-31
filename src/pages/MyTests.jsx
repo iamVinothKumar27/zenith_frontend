@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider.jsx";
 
@@ -40,37 +40,35 @@ function renderReport(analysis) {
   return parts.length ? parts.join("\n\n") : "Complete the test to generate a report.";
 }
 
-export default function MockTestHistory() {
+export default function MyTests() {
   const { user } = useAuth();
+  const [tab, setTab] = useState("mock"); // mock | practice
   const [loading, setLoading] = useState(true);
-  const [sessions, setSessions] = useState([]);
   const [err, setErr] = useState("");
+  const [sessions, setSessions] = useState([]);
   const [openReportId, setOpenReportId] = useState(null);
 
-  async function loadAll() {
+  // Start New should take user to Home page section (not the generator form route)
+  const startLink = tab === "mock" ? "/#mock-tests" : "/#practice-tests";
+  const historyLink = "/mock-test-history?tab=" + tab;
+
+  const headerHint = useMemo(() => {
+    return tab === "mock"
+      ? "Full screening style (General + Tech + Coding)"
+      : "Topic-wise drills (General / Tech / DSA)";
+  }, [tab]);
+
+  async function load(kind = tab) {
     setErr("");
     setLoading(true);
     try {
       const token = user ? await user.getIdToken() : "";
-      const [mockRes, practiceRes] = await Promise.all([
-        fetchWithFallback(`/mocktest/sessions?kind=mock`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetchWithFallback(`/mocktest/sessions?kind=practice`, { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
-      const mockData = await mockRes.json().catch(() => ({}));
-      const practiceData = await practiceRes.json().catch(() => ({}));
-      if (!mockRes.ok || !mockData?.ok) throw new Error(mockData?.error || "Failed to load mock history");
-      if (!practiceRes.ok || !practiceData?.ok) throw new Error(practiceData?.error || "Failed to load practice history");
-
-      const mockSessions = (Array.isArray(mockData.sessions) ? mockData.sessions : []).map((s) => ({ ...s, kind: "mock" }));
-      const practiceSessions = (Array.isArray(practiceData.sessions) ? practiceData.sessions : []).map((s) => ({ ...s, kind: "practice" }));
-
-      const merged = [...mockSessions, ...practiceSessions].sort((a, b) => {
-        const da = new Date(a.created_at || 0).getTime();
-        const db = new Date(b.created_at || 0).getTime();
-        return db - da;
+      const res = await fetchWithFallback(`/mocktest/sessions?kind=${kind}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      setSessions(merged);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || "Failed to load sessions");
+      setSessions(Array.isArray(data.sessions) ? data.sessions : []);
     } catch (e) {
       setErr(e?.message || "Failed");
     } finally {
@@ -78,9 +76,8 @@ export default function MockTestHistory() {
     }
   }
 
-  async function del(session_id, kind) {
-    const label = kind === "practice" ? "practice" : "mock";
-    if (!confirm(`Delete this ${label} test session?`)) return;
+  async function del(session_id) {
+    if (!confirm("Delete this session?")) return;
     try {
       const token = user ? await user.getIdToken() : "";
       const res = await fetchWithFallback(`/mocktest/sessions/${session_id}`, {
@@ -89,7 +86,7 @@ export default function MockTestHistory() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Delete failed");
-      await loadAll();
+      await load();
     } catch (e) {
       alert(e?.message || "Delete failed");
     }
@@ -97,46 +94,64 @@ export default function MockTestHistory() {
 
   useEffect(() => {
     if (!user) return;
-    loadAll();
+    load(tab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, tab]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 pt-10 pb-28">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text)]">Full History</h1>
-          <p className="text-sm text-[var(--muted)]">Browse your past Mock + Practice test sessions</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">My Tests</h1>
+          </div>
+          <div className="text-sm text-[var(--muted)] mt-1">{headerHint}</div>
         </div>
 
-        <button
-          onClick={loadAll}
-          className="px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:brightness-95"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to={startLink}
+            className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-semibold hover:brightness-110"
+          >
+            Start New
+          </Link>
+          <button
+            onClick={() => load(tab)}
+            className="px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:brightness-95"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {/* Navbar (keep) */}
+      {/* Toggle */}
       <div className="inline-flex rounded-2xl border border-[var(--border)] bg-[var(--card)] p-1">
-        <Link
-          to="/my-tests?tab=mock"
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-[var(--text)] hover:bg-[var(--bg)]"
+        <button
+          onClick={() => setTab("mock")}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+            tab === "mock" ? "bg-[var(--accent)] text-white" : "text-[var(--text)] hover:bg-[var(--bg)]"
+          }`}
         >
           Mock Tests
-        </Link>
-        <Link
-          to="/my-tests?tab=practice"
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-[var(--text)] hover:bg-[var(--bg)]"
+        </button>
+        <button
+          onClick={() => setTab("practice")}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+            tab === "practice" ? "bg-[var(--accent)] text-white" : "text-[var(--text)] hover:bg-[var(--bg)]"
+          }`}
         >
           Practice Tests
-        </Link>
-        <Link to="/mock-test-history" className="px-4 py-2 rounded-xl text-sm font-semibold bg-[var(--accent)] text-white">
+        </button>
+        <Link
+          to={historyLink}
+          className="px-4 py-2 rounded-xl text-sm font-semibold text-[var(--text)] hover:bg-[var(--bg)]"
+          title="Open full history page"
+        >
           Full History
         </Link>
       </div>
 
-      {err && <div className="mt-4 text-red-400">{err}</div>}
+      {err ? <div className="mt-4 text-red-500">{err}</div> : null}
 
       <div className="mt-5 rounded-2xl bg-[var(--card)] border border-[var(--border)] overflow-hidden">
         <div className="px-5 py-4 border-b border-[var(--border)] font-semibold text-[var(--text)]">Sessions</div>
@@ -144,18 +159,16 @@ export default function MockTestHistory() {
         {loading ? (
           <div className="p-5 text-[var(--muted)]">Loading…</div>
         ) : sessions.length === 0 ? (
-          <div className="p-5 text-[var(--muted)]">No sessions yet.</div>
+          <div className="p-5 text-[var(--muted)]">No {tab} sessions yet.</div>
         ) : (
           <div className="divide-y divide-[var(--border)]">
             {sessions.map((s) => (
               <div key={s.session_id} className="p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-[280px]">
-                    <div className="text-sm font-semibold text-[var(--text)]">
-                      {s.title || (s.kind === "practice" ? "Practice Test" : "Mock Test")}
-                    </div>
+                  <div className="min-w-[260px]">
+                    <div className="text-sm font-semibold text-[var(--text)]">{s.title || (tab === "mock" ? "Mock Test" : "Practice Test")}</div>
 
-                    {s.kind === "mock" ? (
+                    {tab === "mock" ? (
                       <div className="text-xs text-[var(--muted)]">
                         Mode: {s.mode} • Pattern: G {s.pattern?.general ?? 0}, T {s.pattern?.tech ?? 0}, C {s.pattern?.coding ?? 0}
                       </div>
@@ -168,10 +181,10 @@ export default function MockTestHistory() {
                     )}
 
                     <div className="text-xs text-[var(--muted)] mt-1">Created: {fmtDate(s.created_at)}</div>
-                    <div className="text-[11px] text-[var(--muted)] mt-1">Type: {s.kind === "practice" ? "Practice" : "Mock"}</div>
                   </div>
 
                   <div className="flex items-center gap-3">
+                    {/* Score (mock + practice) */}
                     <div className="px-4 py-2 rounded-2xl bg-[var(--bg)] border border-[var(--border)]">
                       <div className="text-[11px] text-[var(--muted)]">Score</div>
                       <div className="text-sm font-semibold text-[var(--text)]">
@@ -179,22 +192,24 @@ export default function MockTestHistory() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => setOpenReportId((v) => (v === s.session_id ? null : s.session_id))}
-                      className="px-4 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--bg)] text-sm"
-                    >
-                      Report
-                    </button>
+                    {(tab === "mock" || tab === "practice") ? (
+                      <button
+                        onClick={() => setOpenReportId((v) => (v === s.session_id ? null : s.session_id))}
+                        className="px-4 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--bg)] text-sm"
+                      >
+                        Report
+                      </button>
+                    ) : null}
 
                     <Link
-                      to={s.kind === "mock" ? `/mock-test/${s.session_id}` : `/practice-test/${s.session_id}`}
+                      to={tab === "mock" ? `/mock-test/${s.session_id}` : `/practice-test/${s.session_id}`}
                       className="px-4 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--bg)] text-sm"
                     >
                       Open
                     </Link>
 
                     <button
-                      onClick={() => del(s.session_id, s.kind)}
+                      onClick={() => del(s.session_id)}
                       className="px-4 py-2 rounded-xl border border-red-500/40 text-red-300 hover:bg-red-500/10 text-sm"
                     >
                       Delete

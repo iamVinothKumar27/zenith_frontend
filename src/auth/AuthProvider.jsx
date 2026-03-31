@@ -35,7 +35,7 @@ async function syncFirebaseUserToMongo(user) {
     uid: user.uid,
     email: user.email,
     name: user.displayName || "",
-    photoURL: user.photoURL || "",
+    photoURL: user.photoURL || user.providerData?.[0]?.photoURL || "",
     providerId: user.providerData?.[0]?.providerId || "firebase",
   };
 

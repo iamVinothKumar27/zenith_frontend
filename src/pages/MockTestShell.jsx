@@ -4,6 +4,7 @@ import { LayoutGrid, Menu, Sun, Moon } from "lucide-react";
 import { SessionRunner } from "./MockTest.jsx";
 import { useTheme } from "../theme/ThemeProvider.jsx";
 import { useAuth } from "../auth/AuthProvider.jsx"; // if you have it (used for name/photo)
+import { getPreferredProfilePhoto } from "../utils/profilePhoto.js";
 
 // ✅ Header matches main Navbar design
 export default function MockTestShell() {
@@ -16,15 +17,11 @@ export default function MockTestShell() {
   const [sectionsOpen, setSectionsOpen] = useState(true);
 
   const userName = (auth?.profile?.name || auth?.user?.displayName || auth?.user?.email || "User").toString().trim();
-  // Prefer the profile picture stored in DB (photoLocalURL) since Firebase auth photoURL may lag behind updates.
-  const userPhoto =
-    auth?.profile?.photoLocalURL ||
-    auth?.profile?.photoURL ||
-    auth?.user?.photoURL ||
-    null;
+  const userPhoto = getPreferredProfilePhoto(auth?.profile, auth?.user) || null;
 
   const onExit = () => {
-    if ((location.pathname || "").includes("/mock-test/")) navigate("/my-tests");
+    const p = location.pathname || "";
+    if (p.includes("/mock-test/") || p.includes("/practice-test/")) navigate("/my-tests");
     else navigate("/");
   };
 
@@ -119,6 +116,7 @@ export default function MockTestShell() {
       {/* ================= CONTENT ================= */}
       <div className="flex-1 overflow-hidden">
         <SessionRunner
+          isPractice={(location.pathname || "").includes("/practice-test/")}
           sectionsOpen={sectionsOpen}
           navOpen={navOpen}
           onCloseSections={() => setSectionsOpen(false)}

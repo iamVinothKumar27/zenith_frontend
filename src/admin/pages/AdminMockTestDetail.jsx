@@ -13,6 +13,34 @@ function fmtDate(v) {
   }
 }
 
+function fmtDateIST(v) {
+  if (!v) return "";
+  try {
+    const d = new Date(v);
+    if (!Number.isFinite(d.getTime())) return String(v);
+    return d.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }) + " IST";
+  } catch {
+    return String(v);
+  }
+}
+
+function safeText(v, fallback = "—") {
+  if (v == null || v === "") return fallback;
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+  if (Array.isArray(v)) return v.map((x) => safeText(x, "")).filter(Boolean).join(", ") || fallback;
+  if (typeof v === "object") {
+    if (typeof v.name === "string" && v.name.trim()) return v.name;
+    if (typeof v.title === "string" && v.title.trim()) return v.title;
+    if (typeof v.label === "string" && v.label.trim()) return v.label;
+    try {
+      return JSON.stringify(v, null, 2);
+    } catch {
+      return fallback;
+    }
+  }
+  return String(v);
+}
+
 function toText(v) {
   if (v == null) return "";
   if (typeof v === "string") return v;
@@ -276,7 +304,7 @@ export default function AdminMockTestDetail() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card title="Mode">
-              <div className="text-lg font-bold text-[var(--text)]">{session.mode || "—"}</div>
+              <div className="text-lg font-bold text-[var(--text)]">{safeText(session.mode)}</div>
             </Card>
             <Card title="Score">
               <div className="text-lg font-bold text-[var(--text)]">
@@ -318,6 +346,64 @@ export default function AdminMockTestDetail() {
             </div>
             ) : null}
           </div>
+
+          {session?.proctoring?.enabled ? (
+            <div className="ui-card p-5 mt-6">
+              <div className="font-semibold mb-4">Proctoring</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <Card title="Violations">
+                  <div className="text-2xl font-bold text-[var(--text)]">{Number(session?.proctoring?.violations || 0)}</div>
+                </Card>
+                <Card title="Allowed limit">
+                  <div className="text-2xl font-bold text-[var(--text)]">{Number(session?.proctoring?.violation_limit || 3)}</div>
+                </Card>
+                <Card title="Status">
+                  <div className="text-sm font-semibold text-[var(--text)]">
+                    {session?.proctoring?.auto_submitted ? "Auto-submitted due to violation" : "No auto-submit"}
+                  </div>
+                </Card>
+              </div>
+
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
+                <div className="text-xs font-semibold text-[var(--muted)] mb-3">Warnings</div>
+                {(session?.proctoring?.warnings || []).length ? (
+                  <div className="space-y-2 text-sm text-[var(--text)]">
+                    {(session?.proctoring?.warnings || []).map((w, i) => (
+                      <div key={i}>
+                        {(w?.message || `Warning ${i + 1}`)} • {fmtDateIST(w?.at || w?.at_ist)}
+                      </div>
+                    ))}
+                  </div>
+                ) : <div className="text-sm text-[var(--muted)]">No warnings.</div>}
+              </div>
+
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 mt-4">
+                <div className="text-xs font-semibold text-[var(--muted)] mb-3">Event log</div>
+                {(session?.proctoring?.events || []).length ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-[rgba(16,185,129,0.08)] text-[var(--muted)]">
+                        <tr>
+                          <th className="text-left px-4 py-2 font-medium">#</th>
+                          <th className="text-left px-4 py-2 font-medium">Type</th>
+                          <th className="text-left px-4 py-2 font-medium">Time (IST)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border)]">
+                        {(session?.proctoring?.events || []).map((ev, i) => (
+                          <tr key={i}>
+                            <td className="px-4 py-2">{i + 1}</td>
+                            <td className="px-4 py-2">{ev?.type || "screen-switch"}</td>
+                            <td className="px-4 py-2">{fmtDateIST(ev?.at || ev?.at_ist)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <div className="text-sm text-[var(--muted)]">No proctoring events.</div>}
+              </div>
+            </div>
+          ) : null}
         </>
       ) : null}
     </div>

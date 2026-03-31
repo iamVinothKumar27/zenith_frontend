@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { auth, signOut } from "../../firebase.js";
 import { useAuth } from "../../auth/AuthProvider.jsx";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
+import { getProfilePhotoCandidates } from "../../utils/profilePhoto.js";
 
 const MENU = [
   { id: 1, title: "Home", path: "/" },
@@ -63,12 +64,7 @@ export default function Navbar() {
     );
   }, [profile?.name, user?.displayName, user?.email]);
 
-  const avatarCandidates = useMemo(() => {
-    return [profile?.photoLocalURL, profile?.photoURL, user?.photoURL]
-      .map((x) => (x ? String(x) : ""))
-      .map((x) => x.trim())
-      .filter(Boolean);
-  }, [profile?.photoLocalURL, profile?.photoURL, user?.photoURL]);
+  const avatarCandidates = useMemo(() => getProfilePhotoCandidates(profile, user), [profile, user]);
 
   const avatarUrl = avatarCandidates[avatarIdx] || "";
   const drawerAvatarUrl = avatarCandidates[drawerAvatarIdx] || "";

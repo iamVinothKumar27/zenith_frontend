@@ -7,6 +7,7 @@ import { IoMdMenu } from "react-icons/io";
 import { auth } from "../firebase.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import { useTheme } from "../theme/ThemeProvider.jsx";
+import { getProfilePhotoCandidates } from "../utils/profilePhoto.js";
 
 const ADMIN_MENU = [
   { title: "Overview", path: "/admin" },
@@ -15,6 +16,7 @@ const ADMIN_MENU = [
   { title: "Course Progress", path: "/admin/course-progress" },
   { title: "Quiz Performance", path: "/admin/quiz-performance" },
   { title: "Mock Test Analytics", path: "/admin/mocktest-analytics" },
+  { title: "Practice Test Analytics", path: "/admin/practicetest-analytics" },
 ];
 
 function initials(name = "") {
@@ -82,12 +84,7 @@ export default function AdminLayout() {
     );
   }, [profile?.name, user?.displayName, user?.email]);
 
-  const avatarCandidates = useMemo(() => {
-    return [profile?.photoLocalURL, profile?.photoURL, user?.photoURL]
-      .map((x) => (x ? String(x) : ""))
-      .map((x) => x.trim())
-      .filter(Boolean);
-  }, [profile?.photoLocalURL, profile?.photoURL, user?.photoURL]);
+  const avatarCandidates = useMemo(() => getProfilePhotoCandidates(profile, user), [profile, user]);
 
   const avatarUrl = avatarCandidates[avatarIdx] || "";
   const drawerAvatarUrl = avatarCandidates[drawerAvatarIdx] || "";

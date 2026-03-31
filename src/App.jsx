@@ -18,7 +18,10 @@ import Contact from "./pages/Contact.jsx";
 
 import MockTestShell from "./pages/MockTestShell.jsx";
 import MockTestHistory from "./pages/MockTestHistory.jsx";
+import PracticeHistory from "./pages/PracticeHistory.jsx";
+import MyTests from "./pages/MyTests.jsx";
 import StartMockTest from "./pages/StartMockTest.jsx";
+import StartPracticeTest from "./pages/StartPracticeTest.jsx";
 
 import ResumeRank from "./pages/ResumeRank.jsx";
 import AtsHistory from "./pages/AtsHistory.jsx";
@@ -38,9 +41,11 @@ import AdminCoursesStudying from "./admin/pages/AdminCoursesStudying.jsx";
 import AdminCourseProgress from "./admin/pages/AdminCourseProgress.jsx";
 import AdminQuizPerformance from "./admin/pages/AdminQuizPerformance.jsx";
 import AdminMockTestAnalytics from "./admin/pages/AdminMockTestAnalytics.jsx";
+import AdminPracticeTestAnalytics from "./admin/pages/AdminPracticeTestAnalytics.jsx";
 import AdminUserDetail from "./admin/pages/AdminUserDetail.jsx";
 import AdminCourseDetail from "./admin/pages/AdminCourseDetail.jsx";
 import AdminMockTestDetail from "./admin/pages/AdminMockTestDetail.jsx";
+import AdminPracticeTestDetail from "./admin/pages/AdminPracticeTestDetail.jsx";
 import AdminUserCourseQuizResults from "./admin/pages/AdminUserCourseQuizResults.jsx";
 import { useAuth } from "./auth/AuthProvider.jsx";
 
@@ -84,6 +89,16 @@ export default function App() {
           {/* ✅ Mock Test (no main header/footer) */}
           <Route
             path="/mock-test/:sessionId"
+            element={
+              <ProtectedRoute>
+                <MockTestShell />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ✅ Practice Test (no main header/footer) */}
+          <Route
+            path="/practice-test/:sessionId"
             element={
               <ProtectedRoute>
                 <MockTestShell />
@@ -170,12 +185,33 @@ export default function App() {
               }
             />
 
+
+            {/* ✅ Practice Test form */}
+            <Route
+              path="start-practice-test"
+              element={
+                <ProtectedRoute>
+                  <StartPracticeTest />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Backward compatible: /mock-test opens the form */}
             <Route
               path="mock-test"
               element={
                 <ProtectedRoute>
                   <StartMockTest />
+                </ProtectedRoute>
+              }
+            />
+
+
+            <Route
+              path="practice-test-history"
+              element={
+                <ProtectedRoute>
+                  <PracticeHistory />
                 </ProtectedRoute>
               }
             />
@@ -194,7 +230,7 @@ export default function App() {
               path="my-tests"
               element={
                 <ProtectedRoute>
-                  <MockTestHistory />
+                  <MyTests />
                 </ProtectedRoute>
               }
             />
@@ -240,6 +276,7 @@ export default function App() {
             <Route path="user/:uid" element={<AdminUserDetail />} />
             <Route path="user/:uid/course/:courseTitle/quizzes" element={<AdminUserCourseQuizResults />} />
             <Route path="user/:uid/mocktests/:sessionId" element={<AdminMockTestDetail />} />
+	            <Route path="user/:uid/practicetests/:sessionId" element={<AdminPracticeTestDetail />} />
             <Route path="course/:courseTitle" element={<AdminCourseDetail />} />
             <Route path="courses-studying" element={<AdminCoursesStudying />} />
             <Route path="courses" element={<AdminCoursesStudying />} />
@@ -247,7 +284,8 @@ export default function App() {
             <Route path="progress" element={<AdminCourseProgress />} />
             <Route path="quiz-performance" element={<AdminQuizPerformance />} />
             <Route path="quizzes" element={<AdminQuizPerformance />} />
-            <Route path="mocktest-analytics" element={<AdminMockTestAnalytics />} />
+	            <Route path="mocktest-analytics" element={<AdminMockTestAnalytics />} />
+	            <Route path="practicetest-analytics" element={<AdminPracticeTestAnalytics />} />
           </Route>
 
           {/* Fallback */}

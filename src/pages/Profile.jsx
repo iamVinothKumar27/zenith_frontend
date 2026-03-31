@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Avatar from "../components/common/Avatar.jsx";
 import { useAuth } from "../auth/AuthProvider.jsx";
+import { getPreferredProfilePhoto } from "../utils/profilePhoto.js";
 
 function calcAge(dobStr) {
   if (!dobStr) return null;
@@ -36,6 +38,7 @@ export default function Profile() {
   const [photoUploading, setPhotoUploading] = useState(false);
 
   const age = useMemo(() => calcAge(form.dob), [form.dob]);
+  const resolvedProfilePhoto = useMemo(() => getPreferredProfilePhoto(profile, user), [profile, user]);
 
   useEffect(() => {
     (async () => {
@@ -62,7 +65,7 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const avatarUrl = profile?.photoLocalURL || profile?.photoURL || "";
+  const hasUploadedPhoto = !!String(profile?.avatarFileId || profile?.photoLocalURL || "").trim();
 
   const onChange = (k) => (e) => {
     setForm((s) => ({ ...s, [k]: e.target.value }));
@@ -214,11 +217,7 @@ export default function Profile() {
           <div className="mt-6 flex items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full overflow-hidden border border-[var(--border)] bg-[var(--bg)]">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="profile" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full grid place-items-center text-xs text-[var(--muted)]">No Photo</div>
-                )}
+                <Avatar name={form?.name || profile?.name || user?.displayName || ""} email={profile?.email || user?.email || ""} imageUrl={resolvedProfilePhoto} size={72} className="w-full h-full" />
               </div>
 
               {isEditing && (
@@ -239,7 +238,7 @@ export default function Profile() {
                   <button
                     type="button"
                     onClick={deletePhoto}
-                    disabled={photoUploading || !avatarUrl}
+                    disabled={photoUploading || !hasUploadedPhoto}
                     className="px-3 py-2 rounded-xl border border-red-300 text-red-700 bg-[var(--bg)] text-sm font-semibold hover:opacity-90 disabled:opacity-50"
                   >
                     Delete
