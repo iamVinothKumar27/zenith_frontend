@@ -12,16 +12,18 @@ const API_BASES = (import.meta.env.VITE_API_BASES || import.meta.env.VITE_API_BA
 
 async function fetchWithFallback(path, options) {
   let lastErr = null;
+  let lastRes = null;
   const p = path.startsWith("/") ? path : `/${path}`;
   for (const base of API_BASES) {
     try {
       const res = await fetch(`${base}${p}`, options);
+      lastRes = res;
       if (res.status < 500) return res;
-      lastErr = new Error(`HTTP ${res.status}`);
     } catch (e) {
       lastErr = e;
     }
   }
+  if (lastRes) return lastRes;
   throw lastErr || new Error("All backends failed");
 }
 
@@ -131,7 +133,7 @@ const CourseForm = () => {
         alert(result.error || "Failed to generate roadmap");
       }
     } catch (err) {
-      alert("Network error. Please try again.");
+      alert(err?.message || "Network error. Please try again.");
       console.error(err);
     } finally {
       setLoading(false);
