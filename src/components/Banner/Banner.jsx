@@ -1,70 +1,93 @@
 import React from "react";
 import BannerPng from "../../assets/education.png";
-import { GrUserExpert } from "react-icons/gr";
-import { MdOutlineAccessTime } from "react-icons/md";
-import { FaBookReader } from "react-icons/fa";
-import { FadeUp } from "../Hero/Hero";
 import { motion } from "framer-motion";
+import { BookMarked, UserCheck, Clock, TrendingUp, CheckCircle2 } from "lucide-react";
+
+const FEATURES = [
+  {
+    icon: BookMarked,
+    title: "10,000+ Courses",
+    desc: "From beginner to expert-level content across all tech domains",
+    color: "text-indigo-500",
+    bg: "bg-indigo-50 dark:bg-indigo-900/20",
+  },
+  {
+    icon: UserCheck,
+    title: "Expert Instruction",
+    desc: "Learn from industry professionals with real-world experience",
+    color: "text-violet-500",
+    bg: "bg-violet-50 dark:bg-violet-900/20",
+  },
+  {
+    icon: Clock,
+    title: "Lifetime Access",
+    desc: "Learn at your own pace with permanent access to all content",
+    color: "text-sky-500",
+    bg: "bg-sky-50 dark:bg-sky-900/20",
+  },
+  {
+    icon: TrendingUp,
+    title: "Career Outcomes",
+    desc: "98% of our learners report improved job prospects after completion",
+    color: "text-emerald-500",
+    bg: "bg-emerald-50 dark:bg-emerald-900/20",
+  },
+];
 
 const Banner = () => {
   return (
-    <section id="banner">
-      <div className="container py-14 md:py-24 grid grid-cols-1 md:grid-cols-2 gap-8 space-y-6 md:space-y-0">
-        {/* Banner Image */}
-        <div className="flex justify-center items-center">
-          <motion.img
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            src={BannerPng}
-            alt=""
-            className="w-full max-w-[350px] md:max-w-[450px] h-auto object-cover drop-shadow"
-          />
-        </div>
-        {/* Banner Text */}
-        <div className="flex flex-col justify-center">
-          <div className="text-center md:text-left space-y-12">
-            <motion.h1
-              initial={{ opacity: 0, scale: 0.5 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+    <section className="bg-[var(--bg)] py-20">
+      <div className="container">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+
+          {/* Image Side */}
+          <div className="relative flex justify-center items-center order-2 md:order-1">
+            <div className="absolute inset-0 rounded-3xl opacity-10 blur-2xl"
+              style={{ background: "var(--grad)" }} />
+            <motion.img
+              initial={{ opacity: 0, x: -40 }}
+              whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="text-3xl md:text-4xl font-bold !leading-snug"
-            >
-              The World's Leading Online learning Platform
-            </motion.h1>
-            <div className="flex flex-col gap-6">
-              <motion.div
-                variants={FadeUp(0.2)}
-                initial="initial"
-                whileInView={"animate"}
-                viewport={{ once: true }}
-                className="flex items-center gap-4 p-6 bg-[var(--card)] border border-[var(--border)] rounded-2xl hover:bg-[rgba(16,185,129,0.06)] duration-300 hover:shadow-2xl"
-              >
-                <FaBookReader className="text-2xl" />
-                <p className="text-lg">10,000+ Courses</p>
-              </motion.div>
-              <motion.div
-                variants={FadeUp(0.4)}
-                initial="initial"
-                whileInView={"animate"}
-                viewport={{ once: true }}
-                className="flex items-center gap-4 p-6 bg-[var(--card)] border border-[var(--border)] rounded-2xl hover:bg-[rgba(16,185,129,0.06)] duration-300 hover:shadow-2xl"
-              >
-                <GrUserExpert className="text-2xl" />
-                <p className="text-lg">Expert Instruction</p>
-              </motion.div>
-              <motion.div
-                variants={FadeUp(0.6)}
-                initial="initial"
-                whileInView={"animate"}
-                viewport={{ once: true }}
-                className="flex items-center gap-4 p-6 bg-[var(--card)] border border-[var(--border)] rounded-2xl hover:bg-[rgba(16,185,129,0.06)] duration-300 hover:shadow-2xl"
-              >
-                <MdOutlineAccessTime className="text-2xl" />
-                <p className="text-lg">Lifetime Access</p>
-              </motion.div>
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              src={BannerPng}
+              alt="Education"
+              className="relative z-10 w-full max-w-[380px] md:max-w-[420px] drop-shadow-xl"
+            />
+          </div>
+
+          {/* Content Side */}
+          <div className="order-1 md:order-2">
+            <div className="section-eyebrow mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+              Why Choose Zenith
+            </div>
+            <h2 className="section-title mb-5">
+              The World&apos;s Leading<br />
+              <span className="gradient-text">Online Learning Platform</span>
+            </h2>
+            <p className="text-[var(--muted)] mb-8 leading-relaxed">
+              We combine expert instruction with cutting-edge tools to give you everything you need to succeed in your tech career.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {FEATURES.map((f, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.1 }}
+                  className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 flex items-start gap-3 hover:border-[var(--accent-border)] hover:shadow-[0_4px_20px_rgba(79,70,229,0.08)] transition-all duration-300"
+                >
+                  <div className={`w-10 h-10 rounded-xl ${f.bg} grid place-items-center shrink-0`}>
+                    <f.icon className={`w-5 h-5 ${f.color}`} />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-sm text-[var(--text)] mb-0.5">{f.title}</div>
+                    <div className="text-xs text-[var(--muted)] leading-relaxed">{f.desc}</div>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </div>
         </div>

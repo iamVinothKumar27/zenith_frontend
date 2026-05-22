@@ -6,6 +6,11 @@ import { motion } from "framer-motion";
 import { useTheme } from "../../theme/ThemeProvider.jsx";
 import MindmapViewer from "../mindmap/MindmapViewer.jsx";
 import Editor from "@monaco-editor/react";
+import {
+  BookOpen, Play, Lock, ChevronRight, ChevronDown, Sun, Moon, LogOut,
+  FileText, Brain, Mic, HelpCircle, X, MessageSquare, Home, Layers,
+  RefreshCw, Save, CheckCircle, XCircle, AlertTriangle, ArrowLeft, ArrowRight,
+} from "lucide-react";
 
 const PASS_PERCENT = 0.4; // 40% to pass
 
@@ -166,6 +171,13 @@ const VideoPage = () => {
 
   // ✅ User-switchable chat mode (like ChatGPT: Normal vs PDF)
   const [chatMode, setChatMode] = useState("course"); // "course" | "pdf"
+  // Lock body scroll while learning panel is open — prevents parent Layout from scrolling
+  useEffect(() => {
+    const saved = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = saved; };
+  }, []);
+
   useEffect(() => {
     try {
       const v = localStorage.getItem(`${CHAT_CODE_THEME_KEY}:${courseKey}`);
@@ -1513,64 +1525,66 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
 
   return (
     <div className="h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col overflow-hidden">
-      <header className="bg-[var(--card)]/90 backdrop-blur border-b border-[var(--border)] px-4 py-3 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-4">
+      <header className="bg-[var(--nav)] backdrop-blur-md border-b border-[var(--border)] px-4 py-2.5 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+        <div className="flex items-center gap-3">
           {sidebarCollapsed && (
             <button
               onClick={() => setSidebarCollapsed(false)}
-              className="p-2 bg-[var(--accent)] text-white rounded-xl hover:opacity-90"
+              className="p-2 bg-[var(--accent-light)] text-[var(--accent)] rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all"
+              title="Show course contents"
             >
-              📚
+              <BookOpen className="w-4 h-4" />
             </button>
           )}
           <div className="flex flex-col">
-            <h1 className="text-xl font-bold">Your Learning</h1>
-            <span className="text-xs text-[var(--muted)]">
-              Video ID: <b>{currentGlobalId}</b> / {globalIdMaps.total} | Unlocked up to: <b>{highestUnlockedId}</b>
+            <h1 className="text-base font-bold text-[var(--text)] leading-tight">{serviceTitle}</h1>
+            <span className="text-[11px] text-[var(--muted)]">
+              Lesson <b>{currentGlobalId}</b> / {globalIdMaps.total} &middot; Unlocked up to <b>{highestUnlockedId}</b>
             </span>
           </div>
         </div>
 
-        <nav className="flex items-center space-x-4">
-          <Link to="/" className="text-sm text-[var(--muted)] hover:text-[var(--text)]">
+        <nav className="flex items-center gap-1.5">
+          <Link to="/" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-all">
+            <Home className="w-3.5 h-3.5" />
             Home
           </Link>
-          <Link to="/services" className="text-sm text-[var(--muted)] hover:text-[var(--text)]">
-            Services
-          </Link>
-          <Link to="/my-courses" className="text-sm text-[var(--muted)] hover:text-[var(--text)]">
+          <Link to="/my-courses" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-all">
+            <Layers className="w-3.5 h-3.5" />
             My Courses
           </Link>
 
           <button
             onClick={toggleTheme}
-            className="w-10 h-10 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90 grid place-items-center"
+            className="w-8 h-8 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--card)] grid place-items-center transition-all"
             title={theme === "dark" ? "Switch to Light" : "Switch to Dark"}
             aria-label="Toggle theme"
           >
-            <span className="text-lg">{theme === "dark" ? "☀️" : "🌙"}</span>
+            {theme === "dark" ? <Sun className="w-3.5 h-3.5 text-[var(--muted)]" /> : <Moon className="w-3.5 h-3.5 text-[var(--muted)]" />}
           </button>
 
           <button
             onClick={() => {
               if (exitLoading) return;
               setExitLoading(true);
-              // let spinner paint
               setTimeout(() => navigate("/"), 50);
             }}
             disabled={exitLoading}
-            className="px-3 py-2 rounded-xl bg-[var(--accent)] text-white hover:bg-[var(--accent-2)] text-sm disabled:opacity-50 flex items-center gap-2"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white text-xs font-semibold hover:bg-[var(--accent-hover)] disabled:opacity-50 transition-all"
           >
-            {exitLoading && (
-              <span className="inline-block w-4 h-4 rounded-full border-2 border-white/60 border-t-white animate-spin" />
-            )}
-            {exitLoading ? "Exiting..." : "Exit"}
+            {exitLoading
+              ? <span className="w-3.5 h-3.5 rounded-full border-2 border-white/50 border-t-white animate-spin" />
+              : <LogOut className="w-3.5 h-3.5" />}
+            {exitLoading ? "Exiting…" : "Exit"}
           </button>
         </nav>
       </header>
 
       {blockMsg && (
-        <div className="bg-yellow-100 border-b border-yellow-200 text-yellow-900 px-4 py-2 text-sm">{blockMsg}</div>
+        <div className="flex items-center gap-2 bg-amber-50 border-b border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300 px-4 py-2 text-xs font-medium">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+          {blockMsg}
+        </div>
       )}
 
       {/* MAIN LAYOUT */}
@@ -1579,83 +1593,96 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
         {!sidebarCollapsed && (
           <>
             <aside
-              className="bg-slate-800 text-white overflow-hidden"
+              className="bg-[var(--card)] border-r border-[var(--border)] text-[var(--text)] overflow-hidden flex flex-col"
               style={{ width: leftWidth, minWidth: 240, maxWidth: "45vw" }}
             >
-              <div className="h-full overflow-y-auto">
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold">📚 Contents</h3>
-                    <button onClick={() => setSidebarCollapsed(true)} className="text-gray-400 hover:text-white p-1">
-                      ✕
-                    </button>
+              {/* Sidebar header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[var(--accent-light)] grid place-items-center">
+                    <BookOpen className="w-3.5 h-3.5 text-[var(--accent)]" />
                   </div>
+                  <span className="text-sm font-semibold text-[var(--text)]">Course Contents</span>
+                </div>
+                <button
+                  onClick={() => setSidebarCollapsed(true)}
+                  className="w-7 h-7 rounded-lg border border-[var(--border)] bg-[var(--surface)] grid place-items-center hover:bg-[var(--card)] transition-all"
+                >
+                  <X className="w-3.5 h-3.5 text-[var(--muted)]" />
+                </button>
+              </div>
 
-                  <div className="mb-4 p-3 bg-slate-700 rounded-lg">
-                    <h4 className="font-medium">{serviceTitle}</h4>
-                    <p className="text-sm text-gray-300">Course</p>
-                  </div>
+              {/* Course title pill */}
+              <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
+                <div className="bg-[var(--accent-light)] rounded-xl px-3 py-2.5">
+                  <div className="text-xs font-semibold text-[var(--accent)] truncate">{serviceTitle}</div>
+                  <div className="text-[10px] text-[var(--muted)] mt-0.5">{globalIdMaps.total} lessons</div>
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    {videos &&
-                      videos.map((week, weekIndex) => {
-                        const weekKey = Object.keys(week)[0];
-                        const weekVideos = week[weekKey];
-                        const isExpanded = expandedWeeks[weekIndex];
+              {/* Module list */}
+              <div className="flex-1 overflow-y-auto py-2">
+                <div className="space-y-0.5 px-2">
+                  {videos &&
+                    videos.map((week, weekIndex) => {
+                      const weekKey = Object.keys(week)[0];
+                      const weekVideos = week[weekKey];
+                      const isExpanded = expandedWeeks[weekIndex];
 
-                        return (
-                          <div key={weekIndex}>
-                            <button
-                              onClick={() => toggleWeek(weekIndex)}
-                              className="w-full flex items-center justify-between p-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-left"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span>{isExpanded ? "📂" : "📁"}</span>
-                                <span className="font-medium">{weekKey}</span>
-                              </div>
-                              <span className="text-gray-400 text-sm">{weekVideos.length} videos</span>
-                            </button>
+                      return (
+                        <div key={weekIndex}>
+                          <button
+                            onClick={() => toggleWeek(weekIndex)}
+                            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left hover:bg-[var(--surface)] transition-all group"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              {isExpanded
+                                ? <ChevronDown className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
+                                : <ChevronRight className="w-3.5 h-3.5 text-[var(--muted)] shrink-0" />}
+                              <span className="text-xs font-semibold text-[var(--text)] truncate">{weekKey}</span>
+                            </div>
+                            <span className="text-[10px] text-[var(--muted)] shrink-0 ml-1">{weekVideos.length}</span>
+                          </button>
 
-                            {isExpanded && (
-                              <div className="ml-4 mt-2 space-y-1">
-                                {weekVideos.map((video, videoIndex) => {
-                                  const gid = getGlobalId(weekIndex, videoIndex);
-                                  const unlocked = isVideoUnlocked(weekIndex, videoIndex);
-                                  const key = `${weekIndex}-${videoIndex}`;
-                                  const passed = !!quizPassedMap[key];
+                          {isExpanded && (
+                            <div className="ml-3 mb-1 space-y-0.5 border-l border-[var(--border)] pl-3">
+                              {weekVideos.map((video, videoIndex) => {
+                                const gid = getGlobalId(weekIndex, videoIndex);
+                                const unlocked = isVideoUnlocked(weekIndex, videoIndex);
+                                const key = `${weekIndex}-${videoIndex}`;
+                                const passed = !!quizPassedMap[key];
+                                const isActive = currentWeek === weekIndex && currentVideo === videoIndex;
 
-                                  return (
-                                    <button
-                                      key={videoIndex}
-                                      onClick={() => selectVideo(weekIndex, videoIndex)}
-                                      className={`w-full text-left p-2 rounded text-sm flex items-center gap-2 ${currentWeek === weekIndex && currentVideo === videoIndex
-                                          ? "bg-[var(--accent)]"
-                                          : unlocked
-                                            ? "hover:bg-slate-600"
-                                            : "opacity-50 cursor-not-allowed"
-                                        }`}
-                                      title={
-                                        unlocked
-                                          ? passed
-                                            ? `Video ID ${gid} (Quiz Passed)`
-                                            : `Video ID ${gid} (Unlocked)`
-                                          : getBlockReasonFor(weekIndex, videoIndex)
-                                      }
-                                    >
-                                      <span>{unlocked ? "🎥" : "🔒"}</span>
-                                      <span className="truncate flex-1">{video.topic}</span>
-                                      <span className="text-xs text-gray-300">
-                                        #{gid} {passed ? "✅" : ""}
-                                      </span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
+                                return (
+                                  <button
+                                    key={videoIndex}
+                                    onClick={() => selectVideo(weekIndex, videoIndex)}
+                                    className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center gap-2 transition-all ${
+                                      isActive
+                                        ? "bg-[var(--accent)] text-white"
+                                        : unlocked
+                                          ? "hover:bg-[var(--surface)] text-[var(--text)]"
+                                          : "opacity-40 cursor-not-allowed text-[var(--muted)]"
+                                    }`}
+                                    title={
+                                      unlocked
+                                        ? passed ? `Lesson ${gid} (Quiz Passed)` : `Lesson ${gid} (Unlocked)`
+                                        : getBlockReasonFor(weekIndex, videoIndex)
+                                    }
+                                  >
+                                    {unlocked
+                                      ? <Play className={`w-3 h-3 shrink-0 ${isActive ? "text-white" : "text-[var(--accent)]"}`} />
+                                      : <Lock className="w-3 h-3 shrink-0 text-[var(--muted)]" />}
+                                    <span className="truncate flex-1">{video.topic}</span>
+                                    {passed && <CheckCircle className={`w-3 h-3 shrink-0 ${isActive ? "text-white/80" : "text-emerald-500"}`} />}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             </aside>
@@ -1670,120 +1697,139 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
         )}
 
         {/* CENTER MAIN */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            <div className="max-w-6xl mx-auto">
-              <div className="flex items-start justify-between gap-4">
-                <h2 className="text-2xl font-bold mb-6">{currentVideoData?.topic}</h2>
+        <main className="flex-1 overflow-y-auto scroll-smooth">
+          <div className="px-5 md:px-6 pt-5 pb-4">
+            <div className="max-w-4xl mx-auto">
 
-                <div className="flex flex-col items-end">
-                  <span className="text-xs text-[var(--muted)]">Status</span>
-                  <span
-                    className={`text-xs px-3 py-1 rounded-full ${isQuizPassedForCurrent ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"
-                      }`}
-                  >
-                    {isQuizPassedForCurrent ? "Quiz Passed" : "Quiz Pending"}
-                  </span>
-                </div>
+              {/* Video title + status */}
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <h2 className="text-xl font-bold text-[var(--text)] leading-tight">{currentVideoData?.topic}</h2>
+                <span className={`shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-semibold ${
+                  isQuizPassedForCurrent
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                    : "bg-[var(--surface)] text-[var(--muted)] border border-[var(--border)]"
+                }`}>
+                  {isQuizPassedForCurrent
+                    ? <><CheckCircle className="w-3.5 h-3.5" /> Passed</>
+                    : <><HelpCircle className="w-3.5 h-3.5" /> Quiz Pending</>}
+                </span>
               </div>
 
-              <div className="bg-[var(--card)] text-[var(--text)] rounded-lg border border-[var(--border)] overflow-hidden mb-6">
+              {/* Video player — responsive height capped at 42vh to prevent scroll overflow */}
+              <div className="bg-black rounded-2xl border border-[var(--border)] overflow-hidden mb-4 shadow-sm">
                 {currentVideoData && currentVideoData.video !== "No video found" ? (
-                  <iframe
-                    width="100%"
-                    height="500"
-                    src={getVideoEmbedUrl(currentVideoData.video)}
-                    title={currentVideoData.topic}
-                    frameBorder="0"
-                    allowFullScreen
-                    className="w-full"
-                  />
+                  <div className="relative w-full" style={{ height: "min(460px, 42vh)" }}>
+                    <iframe
+                      className="absolute inset-0 w-full h-full border-0"
+                      src={getVideoEmbedUrl(currentVideoData.video)}
+                      title={currentVideoData.topic}
+                      allowFullScreen
+                    />
+                  </div>
                 ) : (
-                  <div className="h-96 bg-[var(--surface)] flex items-center justify-center">
-                    <p className="text-[var(--muted)] text-lg">No video available for this topic</p>
+                  <div className="flex flex-col items-center justify-center gap-3 bg-[var(--surface)]" style={{ height: "min(360px, 36vh)" }}>
+                    <div className="w-14 h-14 rounded-2xl bg-[var(--border)] grid place-items-center">
+                      <Play className="w-6 h-6 text-[var(--muted)]" />
+                    </div>
+                    <p className="text-[var(--muted)] text-sm">No video available for this topic</p>
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-4 mb-6">
-                <button
-                  onClick={handleSummarize}
-                  className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-2)]"
-                >
-                  Summarize
-                </button>
-
-                <button
-                  onClick={handleTranscript}
-                  className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-2)]"
-                >
-                  Transcript
-                </button>
-
-                <button
-                  onClick={() => handleMindmap(false)}
-                  className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-2)]"
-                >
-                  Mindmap
-                </button>
-
+              {/* Action toolbar */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {[
+                  { label: "Summary", icon: FileText, onClick: handleSummarize, active: showSummary },
+                  { label: "Transcript", icon: Mic, onClick: handleTranscript, active: showTranscript },
+                  { label: "Mindmap", icon: Brain, onClick: () => handleMindmap(false), active: showMindmap },
+                ].map(({ label, icon: Icon, onClick, active }) => (
+                  <button
+                    key={label}
+                    onClick={onClick}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border text-xs font-semibold transition-all ${
+                      active
+                        ? "bg-[var(--accent)] border-[var(--accent)] text-white shadow-sm"
+                        : "bg-[var(--card)] border-[var(--border)] text-[var(--muted)] hover:text-[var(--accent)] hover:border-[var(--accent-border)]"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {label}
+                  </button>
+                ))}
                 <button
                   onClick={handleQuiz}
                   disabled={isQuizButtonDisabled}
                   title={quizButtonTitle}
-                  className={`px-6 py-2 rounded-lg ${isQuizButtonDisabled
-                      ? "bg-[var(--border)] text-[var(--muted)] cursor-not-allowed"
-                      : "bg-[var(--accent)] text-white hover:brightness-95"
-                    }`}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border text-xs font-semibold transition-all ${
+                    isQuizButtonDisabled
+                      ? "bg-[var(--surface)] border-[var(--border)] text-[var(--muted)] cursor-not-allowed opacity-60"
+                      : showQuiz
+                        ? "bg-[var(--accent)] border-[var(--accent)] text-white shadow-sm"
+                        : "bg-[var(--card)] border-[var(--border)] text-[var(--muted)] hover:text-[var(--accent)] hover:border-[var(--accent-border)]"
+                  }`}
                 >
+                  <HelpCircle className="w-3.5 h-3.5" />
                   Quiz {isQuizPassedForCurrent ? "(Passed)" : ""}
                 </button>
               </div>
 
+              {/* Summary panel */}
               {showSummary && (
-                <div className="bg-[var(--card)] text-[var(--text)] rounded-lg border border-[var(--border)] p-6 mb-6">
-                  <h3 className="text-xl font-semibold mb-4">Video Summary</h3>
-                  {loadingSummary ? <Loader /> : <p className="whitespace-pre-wrap">{summary}</p>}
+                <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 mb-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="w-4 h-4 text-[var(--accent)]" />
+                    <h3 className="text-sm font-semibold text-[var(--text)]">Video Summary</h3>
+                  </div>
+                  {loadingSummary ? <Loader /> : <p className="text-sm text-[var(--muted)] leading-relaxed whitespace-pre-wrap">{summary}</p>}
                 </div>
               )}
 
+              {/* Transcript panel */}
               {showTranscript && (
-                <div className="bg-[var(--card)] text-[var(--text)] rounded-lg border border-[var(--border)] p-6 mb-6">
-                  <h3 className="text-xl font-semibold mb-4">Video Transcript</h3>
+                <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 mb-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Mic className="w-4 h-4 text-[var(--accent)]" />
+                    <h3 className="text-sm font-semibold text-[var(--text)]">Video Transcript</h3>
+                  </div>
                   {loadingTranscript ? (
                     <Loader />
                   ) : transcriptError ? (
-                    <p className="text-red-600">{transcriptError}</p>
+                    <p className="text-sm text-red-600">{transcriptError}</p>
                   ) : (
-                    <p className="whitespace-pre-wrap">{transcript}</p>
+                    <p className="text-sm text-[var(--muted)] leading-relaxed whitespace-pre-wrap">{transcript}</p>
                   )}
                 </div>
               )}
 
+              {/* Mindmap panel */}
               {showMindmap && (
-                <div className="bg-[var(--card)] text-[var(--text)] rounded-lg border border-[var(--border)] p-6 mb-6">
+                <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 mb-4 shadow-sm">
                   <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-                    <h3 className="text-xl font-semibold">Mindmap</h3>
+                    <div className="flex items-center gap-2">
+                      <Brain className="w-4 h-4 text-[var(--accent)]" />
+                      <h3 className="text-sm font-semibold text-[var(--text)]">Mindmap</h3>
+                    </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleSaveMindmapToNotes}
                         disabled={!mindmapTree || loadingMindmap}
-                        className={`px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:brightness-95 ${!mindmapTree || loadingMindmap ? "opacity-50 cursor-not-allowed" : ""
-                          }`}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-medium text-[var(--muted)] hover:text-[var(--text)] transition-all ${!mindmapTree || loadingMindmap ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
+                        <Save className="w-3.5 h-3.5" />
                         Save to Notes
                       </button>
                       <button
                         onClick={() => handleMindmap(true)}
-                        className="px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:brightness-95"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-medium text-[var(--muted)] hover:text-[var(--text)] transition-all"
                       >
+                        <RefreshCw className="w-3.5 h-3.5" />
                         Regenerate
                       </button>
                       <button
                         onClick={() => setShowMindmap(false)}
-                        className="px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:brightness-95"
+                        className="w-7 h-7 rounded-xl border border-[var(--border)] bg-[var(--surface)] grid place-items-center hover:bg-[var(--card)] transition-all"
                       >
-                        Close
+                        <X className="w-3.5 h-3.5 text-[var(--muted)]" />
                       </button>
                     </div>
                   </div>
@@ -1791,55 +1837,49 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
                   {loadingMindmap ? (
                     <Loader />
                   ) : mindmapError ? (
-                    <p className="text-red-600">{mindmapError}</p>
+                    <p className="text-sm text-red-600">{mindmapError}</p>
                   ) : (
                     <MindmapViewer tree={mindmapTree} title={currentVideoData?.topic || "Mindmap"} />
                   )}
                 </div>
               )}
 
+              {/* Quiz panel */}
               {showQuiz && (
-                <div className="bg-[var(--card)] text-[var(--text)] rounded-lg border border-[var(--border)] p-6 mb-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-semibold mb-2">Quiz</h3>
-                    <span className="text-xs text-[var(--muted)]">
-                      Pass mark:{" "}
-                      <b>{requiredMark ?? Math.max(1, Math.ceil((mcqs.length || 10) * PASS_PERCENT))}</b> /{" "}
-                      {mcqs.length || 10}
+                <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 mb-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <HelpCircle className="w-4 h-4 text-[var(--accent)]" />
+                      <h3 className="text-sm font-semibold text-[var(--text)]">Quiz</h3>
+                    </div>
+                    <span className="text-xs text-[var(--muted)] bg-[var(--surface)] px-2.5 py-1 rounded-lg border border-[var(--border)]">
+                      Pass: <b>{requiredMark ?? Math.max(1, Math.ceil((mcqs.length || 10) * PASS_PERCENT))}</b> / {mcqs.length || 10}
                     </span>
                   </div>
 
                   {isQuizSubmittedForCurrent ? (
-                    <div className="mt-4">
+                    <div>
                       {score !== null ? (
-                        <p
-                          className={`font-semibold text-lg ${requiredMark !== null
-                              ? score >= requiredMark
-                                ? "text-green-700"
-                                : "text-red-700"
-                              : score / (mcqs.length || 10) >= PASS_PERCENT
-                                ? "text-green-700"
-                                : "text-red-700"
-                            }`}
-                        >
-                          Score: {score}/{mcqs.length}{" "}
-                          {requiredMark !== null
-                            ? score >= requiredMark
-                              ? "✅ PASSED"
-                              : "❌ NOT PASSED"
-                            : score / (mcqs.length || 10) >= PASS_PERCENT
-                              ? "✅ PASSED"
-                              : "❌ NOT PASSED"}
-                        </p>
+                        <div className={`flex items-center gap-2 p-4 rounded-xl border text-sm font-semibold ${
+                          (requiredMark !== null ? score >= requiredMark : score / (mcqs.length || 10) >= PASS_PERCENT)
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300"
+                            : "bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300"
+                        }`}>
+                          {(requiredMark !== null ? score >= requiredMark : score / (mcqs.length || 10) >= PASS_PERCENT)
+                            ? <CheckCircle className="w-5 h-5" />
+                            : <XCircle className="w-5 h-5" />}
+                          Score: {score}/{mcqs.length} &mdash; {(requiredMark !== null ? score >= requiredMark : score / (mcqs.length || 10) >= PASS_PERCENT) ? "PASSED" : "NOT PASSED"}
+                        </div>
                       ) : (
-                        <p className="text-[var(--muted)]">Score not available</p>
+                        <p className="text-sm text-[var(--muted)]">Score not available</p>
                       )}
 
                       {score !== null && requiredMark !== null && score < requiredMark ? (
                         <button
                           onClick={handleReattempt}
-                          className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                          className="mt-4 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition-all"
                         >
+                          <RefreshCw className="w-3.5 h-3.5" />
                           Reattempt Quiz
                         </button>
                       ) : null}
@@ -1847,25 +1887,32 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
                   ) : (
                     <>
                       {mcqs.length > 0 ? (
-                        <>
+                        <div className="space-y-5">
                           {mcqs.map((mcq, index) => (
-                            <div key={index} className="mb-4">
-                              <p className="font-medium mb-2">
+                            <div key={index}>
+                              <p className="text-sm font-medium text-[var(--text)] mb-2.5">
                                 {index + 1}. {renderRichQuestion(mcq.question)}
                               </p>
                               <div className="space-y-2">
                                 {mcq.options.map((option, i) => (
                                   <label
                                     key={i}
-                                    className="flex items-center p-2 border border-[var(--border)] rounded cursor-pointer hover:bg-[var(--surface)]"
+                                    className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-all text-sm ${
+                                      answers[index] === option
+                                        ? "border-[var(--accent)] bg-[var(--accent-light)] text-[var(--accent)]"
+                                        : "border-[var(--border)] hover:bg-[var(--surface)] text-[var(--text)]"
+                                    }`}
                                   >
                                     <input
                                       type="radio"
                                       name={`q-${index}`}
                                       value={option}
                                       onChange={() => handleAnswerSelect(index, option)}
-                                      className="mr-2"
+                                      className="sr-only"
                                     />
+                                    <span className={`w-4 h-4 rounded-full border-2 shrink-0 ${
+                                      answers[index] === option ? "border-[var(--accent)] bg-[var(--accent)]" : "border-[var(--border)]"
+                                    }`} />
                                     {option}
                                   </label>
                                 ))}
@@ -1876,37 +1923,41 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
                           <button
                             onClick={calculateScore}
                             disabled={quizSubmitting}
-                            className="mt-4 px-4 py-2 bg-[var(--accent)] text-white rounded hover:bg-[var(--accent-2)] disabled:opacity-50 flex items-center gap-2"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--accent-hover)] disabled:opacity-50 transition-all"
                           >
-                            {quizSubmitting && (
-                              <span className="inline-block w-4 h-4 rounded-full border-2 border-white/60 border-t-white animate-spin" />
-                            )}
-                            {quizSubmitting ? "Submitting..." : "Submit Quiz"}
+                            {quizSubmitting && <span className="w-4 h-4 rounded-full border-2 border-white/50 border-t-white animate-spin" />}
+                            {quizSubmitting ? "Submitting…" : "Submit Quiz"}
                           </button>
-                        </>
+                        </div>
                       ) : (
-                        <p>Loading quiz...</p>
+                        <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                          <span className="w-4 h-4 rounded-full border-2 border-[var(--muted)] border-t-[var(--accent)] animate-spin" />
+                          Loading quiz…
+                        </div>
                       )}
                     </>
                   )}
                 </div>
               )}
 
-              <div className="flex justify-between pb-10">
+              {/* Prev / Next navigation */}
+              <div className="flex justify-between pt-3 pb-4">
                 <button
                   onClick={navigateToPreviousVideo}
                   disabled={currentGlobalId === 1}
-                  className="px-6 py-2 border border-[var(--border)] bg-[var(--card)] rounded-lg hover:opacity-90 disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2.5 border border-[var(--border)] bg-[var(--card)] rounded-xl text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
-                  ← Previous
+                  <ArrowLeft className="w-4 h-4" />
+                  Previous
                 </button>
 
                 <button
                   onClick={navigateToNextVideo}
                   disabled={!isNextAvailableByUnlockRule}
-                  className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-2)] disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
-                  Next →
+                  Next
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -1932,25 +1983,26 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
                 {/* LEFT SIDE */}
                 <div className="flex-1">
                   <div className="flex flex-col gap-2">
-                    <h3 className="text-lg font-semibold">Chat</h3>
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-[var(--accent)]" />
+                      <h3 className="text-sm font-semibold text-[var(--text)]">AI Assistant</h3>
+                    </div>
 
-                    {/* Tabs row (next line) */}
+                    {/* Tabs row */}
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 bg-[var(--surface)] p-0.5 rounded-lg border border-[var(--border)]">
                         <button
                           onClick={() => setChatMode("course")}
-                          className={`text-xs px-3 py-1 rounded-full border border-[var(--border)] ${chatMode === "course" ? "bg-[var(--accent)] text-white" : "bg-[var(--bg)]"
-                            }`}
-                          title="Normal chat"
+                          className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${chatMode === "course" ? "bg-[var(--accent)] text-white shadow-sm" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
+                          title="Course chat"
                         >
-                          Normal
+                          Course
                         </button>
 
                         <button
                           onClick={() => setChatMode("pdf")}
                           disabled={!activePdfId}
-                          className={`text-xs px-3 py-1 rounded-full border border-[var(--border)] ${chatMode === "pdf" ? "bg-[var(--accent)] text-white" : "bg-[var(--bg)]"
-                            } ${!activePdfId ? "opacity-50 cursor-not-allowed" : ""}`}
+                          className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${chatMode === "pdf" ? "bg-[var(--accent)] text-white shadow-sm" : "text-[var(--muted)] hover:text-[var(--text)]"} ${!activePdfId ? "opacity-40 cursor-not-allowed" : ""}`}
                           title={activePdfId ? "PDF chat" : "Upload a PDF to enable"}
                         >
                           PDF
@@ -2045,10 +2097,10 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
 
                 <button
                   onClick={() => setChatOpen(false)}
-                  className="px-3 py-1 rounded-xl bg-[var(--bg)] hover:opacity-90 border border-[var(--border)]"
+                  className="w-7 h-7 rounded-lg bg-[var(--surface)] hover:bg-[var(--card)] border border-[var(--border)] grid place-items-center transition-all"
                   title="Close chat"
                 >
-                  ✕
+                  <X className="w-3.5 h-3.5 text-[var(--muted)]" />
                 </button>
               </div>
 
@@ -2252,14 +2304,15 @@ useEffect(() => writeLS(_lsKeyCourseMsgs(courseKey), courseMessages), [courseMes
         )}
       </div>
 
-      {/* FLOATING CHAT ICON */}
+      {/* FLOATING CHAT BUTTON */}
       {!chatOpen && (
         <button
           onClick={() => setChatOpen(true)}
-          className="fixed bottom-6 right-6 z-[60] w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg hover:bg-[var(--accent-2)] flex items-center justify-center text-2xl"
-          title="Chat"
+          className="fixed bottom-6 right-6 z-[60] w-14 h-14 rounded-2xl bg-[var(--accent)] text-white shadow-lg hover:bg-[var(--accent-hover)] grid place-items-center transition-all hover:scale-105 active:scale-95"
+          style={{ boxShadow: "0 8px 24px rgba(79,70,229,0.4)" }}
+          title="Open AI Assistant"
         >
-          💬
+          <MessageSquare className="w-6 h-6" />
         </button>
       )}
     </div>

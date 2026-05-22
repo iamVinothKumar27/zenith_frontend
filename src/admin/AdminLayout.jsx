@@ -2,7 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { IoMdMenu } from "react-icons/io";
+import {
+  LayoutDashboard, Users, BookOpen, TrendingUp,
+  Award, BarChart2, Target, LogOut, Sun, Moon,
+  Shield, Menu, X,
+} from "lucide-react";
 
 import { auth } from "../firebase.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
@@ -10,13 +14,13 @@ import { useTheme } from "../theme/ThemeProvider.jsx";
 import { getProfilePhotoCandidates } from "../utils/profilePhoto.js";
 
 const ADMIN_MENU = [
-  { title: "Overview", path: "/admin" },
-  { title: "Users", path: "/admin/users" },
-  { title: "Courses Studying", path: "/admin/courses-studying" },
-  { title: "Course Progress", path: "/admin/course-progress" },
-  { title: "Quiz Performance", path: "/admin/quiz-performance" },
-  { title: "Mock Test Analytics", path: "/admin/mocktest-analytics" },
-  { title: "Practice Test Analytics", path: "/admin/practicetest-analytics" },
+  { title: "Overview", path: "/admin", icon: LayoutDashboard },
+  { title: "Users", path: "/admin/users", icon: Users },
+  { title: "Courses Studying", path: "/admin/courses-studying", icon: BookOpen },
+  { title: "Course Progress", path: "/admin/course-progress", icon: TrendingUp },
+  { title: "Quiz Performance", path: "/admin/quiz-performance", icon: Award },
+  { title: "Mock Test Analytics", path: "/admin/mocktest-analytics", icon: BarChart2 },
+  { title: "Practice Test Analytics", path: "/admin/practicetest-analytics", icon: Target },
 ];
 
 function initials(name = "") {
@@ -27,8 +31,32 @@ function initials(name = "") {
   return (a + b).toUpperCase();
 }
 
-function DrawerLink({ to, children, onClick }) {
-  // ✅ Ensure "/admin" (overview) is not highlighted for all subroutes
+function Avatar({ src, name, size = "w-9 h-9", textSize = "text-xs", onError }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => { setBroken(false); }, [src]);
+  if (src && !broken) {
+    return (
+      <img
+        src={src}
+        alt={name || "Profile"}
+        className={`${size} rounded-full object-cover shrink-0`}
+        referrerPolicy="no-referrer"
+        crossOrigin="anonymous"
+        onError={() => { setBroken(true); onError?.(); }}
+      />
+    );
+  }
+  return (
+    <div
+      className={`${size} rounded-full text-white font-bold grid place-items-center shrink-0 select-none ${textSize}`}
+      style={{ background: "var(--grad)" }}
+    >
+      {initials(name)}
+    </div>
+  );
+}
+
+function SidebarLink({ to, icon: Icon, children, onClick }) {
   const isOverview = to === "/admin";
   return (
     <NavLink
@@ -36,32 +64,14 @@ function DrawerLink({ to, children, onClick }) {
       end={isOverview}
       onClick={onClick}
       className={({ isActive }) =>
-        `block px-3 py-2 rounded-xl text-sm font-medium transition ${
+        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
           isActive
-            ? "bg-[var(--accent)] text-white"
+            ? "bg-[var(--accent)] text-white shadow-sm"
             : "text-[var(--text)] hover:bg-[var(--bg)]"
         }`
       }
     >
-      {children}
-    </NavLink>
-  );
-}
-
-function TopLink({ to, children }) {
-  const isOverview = to === "/admin";
-  return (
-    <NavLink
-      to={to}
-      end={isOverview}
-      className={({ isActive }) =>
-        `px-3 py-2 rounded-xl text-sm font-medium transition ${
-          isActive
-            ? "bg-[var(--accent)] text-white"
-            : "text-[var(--muted)] hover:bg-[var(--card)]"
-        }`
-      }
-    >
+      {Icon ? <Icon size={16} className="shrink-0" /> : null}
       {children}
     </NavLink>
   );
@@ -70,7 +80,6 @@ function TopLink({ to, children }) {
 export default function AdminLayout() {
   const [open, setOpen] = useState(false);
   const [avatarIdx, setAvatarIdx] = useState(0);
-  const [drawerAvatarIdx, setDrawerAvatarIdx] = useState(0);
 
   const { user, profile } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -84,14 +93,12 @@ export default function AdminLayout() {
     );
   }, [profile?.name, user?.displayName, user?.email]);
 
+  const email = profile?.email || user?.email || "";
   const avatarCandidates = useMemo(() => getProfilePhotoCandidates(profile, user), [profile, user]);
-
   const avatarUrl = avatarCandidates[avatarIdx] || "";
-  const drawerAvatarUrl = avatarCandidates[drawerAvatarIdx] || "";
 
   useEffect(() => {
     setAvatarIdx(0);
-    setDrawerAvatarIdx(0);
   }, [avatarCandidates.join("|")]);
 
   const doLogout = async () => {
@@ -102,178 +109,174 @@ export default function AdminLayout() {
     }
   };
 
-  return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text)]">
-      <header className="sticky top-0 z-30 bg-[var(--nav)] text-[var(--text)] border-b border-[var(--divider)]">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          {/* Left: Hamburger + Brand */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setOpen(true)}
-              className="w-10 h-10 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90 grid place-items-center"
-              aria-label="Open menu"
-              title="Menu"
-            >
-              <IoMdMenu className="text-2xl" />
-            </button>
+  const brandBlock = (
+    <div className="px-4 py-5 border-b border-[var(--border)]">
+      <div className="flex items-center gap-3">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: "var(--grad)" }}
+        >
+          <Shield size={17} className="text-white" />
+        </div>
+        <div>
+          <div className="font-bold text-[var(--text)] leading-tight">Zenith Admin</div>
+          <div className="text-xs text-[var(--muted)]">Dashboard</div>
+        </div>
+      </div>
+    </div>
+  );
 
-            <div className="leading-tight">
-              <div className="font-bold text-xl tracking-tight">Zenith Admin</div>
-              <div className="text-xs text-[var(--muted)] truncate max-w-[220px]">{profile?.email || user?.email || ""}</div>
+  const navBlock = (onLinkClick) => (
+    <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
+      {ADMIN_MENU.map((m) => (
+        <SidebarLink key={m.path} to={m.path} icon={m.icon} onClick={onLinkClick}>
+          {m.title}
+        </SidebarLink>
+      ))}
+    </nav>
+  );
+
+  const userBlock = (
+    <div className="p-3 border-t border-[var(--border)]">
+      <div className="rounded-xl bg-[var(--bg)] p-3 flex items-center gap-3">
+        <Avatar
+          src={avatarUrl}
+          name={displayName}
+          size="w-9 h-9"
+          onError={() => setAvatarIdx((i) => Math.min(i + 1, avatarCandidates.length - 1))}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-[var(--text)] truncate">{displayName || "User"}</div>
+          <div className="text-xs text-[var(--muted)] truncate">{email}</div>
+        </div>
+        <button
+          onClick={doLogout}
+          className="w-8 h-8 rounded-xl border border-[var(--border)] hover:bg-[var(--card)] grid place-items-center shrink-0"
+          title="Logout"
+        >
+          <LogOut size={14} className="text-[var(--muted)]" />
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen flex bg-[var(--bg)] text-[var(--text)]">
+      {/* Permanent sidebar — desktop only */}
+      <aside className="hidden lg:flex w-64 shrink-0 flex-col fixed inset-y-0 left-0 z-20 bg-[var(--card)] border-r border-[var(--border)]">
+        {brandBlock}
+        {navBlock(undefined)}
+        {userBlock}
+      </aside>
+
+      {/* Mobile drawer overlay */}
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.div
+              className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
+            />
+
+            <motion.aside
+              className="fixed top-0 left-0 h-full w-64 z-50 bg-[var(--card)] border-r border-[var(--border)] shadow-2xl flex flex-col lg:hidden"
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              transition={{ type: "spring", stiffness: 260, damping: 25 }}
+              role="dialog"
+              aria-label="Admin menu"
+            >
+              <div className="flex items-center justify-between px-4 py-4 border-b border-[var(--border)]">
+                <div className="font-bold text-[var(--text)]">Menu</div>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="w-8 h-8 rounded-xl border border-[var(--border)] hover:bg-[var(--bg)] grid place-items-center"
+                  aria-label="Close menu"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              {navBlock(() => setOpen(false))}
+              {userBlock}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Page content */}
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+        {/* Top header */}
+        <header className="sticky top-0 z-10 bg-[var(--nav)] border-b border-[var(--border)]">
+          <div className="px-4 lg:px-6 py-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {/* Hamburger — mobile only */}
+              <button
+                onClick={() => setOpen(true)}
+                className="lg:hidden w-9 h-9 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90 grid place-items-center"
+                aria-label="Open menu"
+              >
+                <Menu size={18} />
+              </button>
+
+              {/* Mobile brand */}
+              <div className="lg:hidden font-bold text-[var(--text)]">Zenith Admin</div>
+
+              {/* Desktop: email breadcrumb */}
+              <div className="hidden lg:block text-sm text-[var(--muted)] truncate max-w-xs">{email}</div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="w-9 h-9 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90 grid place-items-center"
+                title={theme === "dark" ? "Switch to Light" : "Switch to Dark"}
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+
+              <button
+                onClick={() => navigate("/profile")}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90"
+                title="Profile"
+              >
+                <Avatar
+                  src={avatarUrl}
+                  name={displayName}
+                  size="w-7 h-7"
+                  textSize="text-[10px]"
+                  onError={() => setAvatarIdx((i) => Math.min(i + 1, avatarCandidates.length - 1))}
+                />
+                <span className="hidden sm:block text-sm font-semibold max-w-[140px] truncate text-[var(--text)]">
+                  {displayName || "User"}
+                </span>
+              </button>
+
+              <button
+                onClick={doLogout}
+                className="px-3 py-1.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white text-sm font-semibold"
+              >
+                Logout
+              </button>
             </div>
           </div>
+        </header>
 
-          {/* Center navigation removed (Requirement): use hamburger side panel for navigation */}
-          <div className="hidden lg:block" />
+        <main className="flex-1">
+          <Outlet />
+        </main>
 
-          {/* Right: Theme + Profile pill + Logout */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="w-10 h-10 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90 grid place-items-center"
-              title={theme === "dark" ? "Switch to Light" : "Switch to Dark"}
-              aria-label="Toggle theme"
-            >
-              <span className="text-lg">{theme === "dark" ? "☀️" : "🌙"}</span>
-            </button>
-
-            <button
-              onClick={() => navigate("/profile")}
-              className="flex items-center gap-2 px-3 py-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:opacity-90"
-              title="Profile"
-            >
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt="profile"
-                  className="w-7 h-7 rounded-full object-cover shrink-0"
-                  onError={() =>
-                    setAvatarIdx((i) =>
-                      avatarCandidates.length
-                        ? Math.min(i + 1, avatarCandidates.length - 1)
-                        : 0
-                    )
-                  }
-                />
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-white text-xs font-bold grid place-items-center shrink-0">
-                  {initials(displayName)}
-                </div>
-              )}
-              <div className="hidden sm:block text-sm font-semibold max-w-[160px] truncate">
-                {displayName || "User"}
-              </div>
-            </button>
-
-            <button
-              onClick={doLogout}
-              className="px-3 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white text-sm font-semibold"
-            >
-              Logout
-            </button>
+        <footer className="border-t border-[var(--border)] bg-[var(--card)]">
+          <div className="px-4 lg:px-6 py-4 text-sm text-[var(--muted)] flex items-center justify-between">
+            <div>© {new Date().getFullYear()} Zenith Admin</div>
+            <div className="hidden sm:block">Manage users, courses &amp; analytics</div>
           </div>
-        </div>
-
-        {/* Drawer */}
-        <AnimatePresence>
-          {open && (
-            <>
-              <motion.div
-                className="fixed inset-0 bg-black/40 z-40"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setOpen(false)}
-              />
-
-              <motion.aside
-                className="fixed top-0 left-0 h-full w-[300px] max-w-[85vw] z-50 bg-[var(--card)] border-r border-[var(--border)] shadow-2xl"
-                initial={{ x: -320 }}
-                animate={{ x: 0 }}
-                exit={{ x: -320 }}
-                transition={{ type: "spring", stiffness: 260, damping: 25 }}
-                role="dialog"
-                aria-label="Admin menu"
-              >
-                <div className="p-4 flex items-center justify-between">
-                  <div className="font-semibold">Menu</div>
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="w-9 h-9 rounded-xl border border-[var(--border)] bg-[var(--bg)] hover:opacity-90 grid place-items-center"
-                    aria-label="Close menu"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {/* User card */}
-                <div className="px-4 pb-3">
-                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-3 flex items-center gap-3">
-                    {drawerAvatarUrl ? (
-                      <img
-                        src={drawerAvatarUrl}
-                        alt="profile"
-                        className="w-12 h-12 rounded-full object-cover shrink-0"
-                        onError={() =>
-                          setDrawerAvatarIdx((i) =>
-                            avatarCandidates.length
-                              ? Math.min(i + 1, avatarCandidates.length - 1)
-                              : 0
-                          )
-                        }
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-[var(--accent)] text-white text-sm font-bold grid place-items-center shrink-0">
-                        {initials(displayName)}
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <div className="font-semibold truncate">{displayName || "User"}</div>
-                      <div className="text-xs text-[var(--muted)] truncate">{profile?.email || user?.email || ""}</div>
-                      {/* Requirement: remove Profile / Back to Site buttons inside drawer profile card */}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="px-4 pb-4">
-                  <div className="text-xs text-[var(--muted)] px-1 mb-2">Admin</div>
-                  <div className="space-y-1">
-                    {ADMIN_MENU.map((m) => (
-                      <DrawerLink
-                        key={m.path}
-                        to={m.path}
-                        onClick={() => setOpen(false)}
-                      >
-                        {m.title}
-                      </DrawerLink>
-                    ))}
-                  </div>
-
-                  <div className="mt-4">
-                    <button
-                      onClick={doLogout}
-                      className="w-full px-3 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white text-sm font-semibold"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              </motion.aside>
-            </>
-          )}
-        </AnimatePresence>
-      </header>
-
-      <main className="flex-1">
-        <Outlet />
-      </main>
-
-      <footer className="border-t border-[var(--border)] bg-[var(--card)]">
-        <div className="max-w-6xl mx-auto px-4 py-6 text-sm text-[var(--muted)] flex items-center justify-between">
-          <div>© {new Date().getFullYear()} Zenith Admin</div>
-          <div className="hidden sm:block">Manage users, courses & analytics</div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }

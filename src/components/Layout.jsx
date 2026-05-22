@@ -16,10 +16,8 @@ export default function Layout() {
 
   if (hideChrome) {
     return (
-      <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text)]">
-        <div className="flex-1">
-          <Outlet />
-        </div>
+      <div className="h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
+        <Outlet />
       </div>
     );
   }

@@ -349,59 +349,150 @@ export default function AdminMockTestDetail() {
 
           {session?.proctoring?.enabled ? (
             <div className="ui-card p-5 mt-6">
-              <div className="font-semibold mb-4">Proctoring</div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <Card title="Violations">
-                  <div className="text-2xl font-bold text-[var(--text)]">{Number(session?.proctoring?.violations || 0)}</div>
-                </Card>
-                <Card title="Allowed limit">
-                  <div className="text-2xl font-bold text-[var(--text)]">{Number(session?.proctoring?.violation_limit || 3)}</div>
-                </Card>
-                <Card title="Status">
-                  <div className="text-sm font-semibold text-[var(--text)]">
-                    {session?.proctoring?.auto_submitted ? "Auto-submitted due to violation" : "No auto-submit"}
+              {/* Header */}
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-xl grid place-items-center ${
+                    session.proctoring.auto_submitted
+                      ? "bg-red-100 dark:bg-red-900/30"
+                      : session.proctoring.violations > 0
+                      ? "bg-amber-100 dark:bg-amber-900/30"
+                      : "bg-emerald-100 dark:bg-emerald-900/30"
+                  }`}>
+                    <span className="text-base">
+                      {session.proctoring.auto_submitted ? "🚨" : session.proctoring.violations > 0 ? "⚠️" : "✅"}
+                    </span>
                   </div>
-                </Card>
+                  <span className="font-semibold text-[var(--text)]">Proctoring Report</span>
+                </div>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                  session.proctoring.auto_submitted
+                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                    : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                }`}>
+                  {session.proctoring.auto_submitted ? "AUTO-SUBMITTED" : "Normal Submit"}
+                </span>
               </div>
 
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-                <div className="text-xs font-semibold text-[var(--muted)] mb-3">Warnings</div>
-                {(session?.proctoring?.warnings || []).length ? (
-                  <div className="space-y-2 text-sm text-[var(--text)]">
-                    {(session?.proctoring?.warnings || []).map((w, i) => (
-                      <div key={i}>
-                        {(w?.message || `Warning ${i + 1}`)} • {fmtDateIST(w?.at || w?.at_ist)}
-                      </div>
-                    ))}
+              {/* Stats row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                {/* Violations count with progress bar */}
+                <div className="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+                  <div className="text-xs text-[var(--muted)] font-medium mb-1">Violations</div>
+                  <div className={`text-3xl font-bold mb-2 ${
+                    Number(session.proctoring.violations) >= Number(session.proctoring.violation_limit || 3)
+                      ? "text-red-600" : Number(session.proctoring.violations) > 0 ? "text-amber-600" : "text-emerald-600"
+                  }`}>
+                    {Number(session.proctoring.violations || 0)}
+                    <span className="text-base font-medium text-[var(--muted)] ml-1">
+                      / {Number(session.proctoring.violation_limit || 3)}
+                    </span>
                   </div>
-                ) : <div className="text-sm text-[var(--muted)]">No warnings.</div>}
+                  <div className="w-full h-2 bg-[var(--border)] rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        Number(session.proctoring.violations) >= Number(session.proctoring.violation_limit || 3)
+                          ? "bg-red-500" : Number(session.proctoring.violations) > 0 ? "bg-amber-500" : "bg-emerald-500"
+                      }`}
+                      style={{ width: `${Math.min(100, (Number(session.proctoring.violations || 0) / Number(session.proctoring.violation_limit || 3)) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+                  <div className="text-xs text-[var(--muted)] font-medium mb-1">Violation Limit</div>
+                  <div className="text-3xl font-bold text-[var(--text)]">{Number(session.proctoring.violation_limit || 3)}</div>
+                  <div className="text-xs text-[var(--muted)] mt-1">Auto-submit threshold</div>
+                </div>
+
+                <div className="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+                  <div className="text-xs text-[var(--muted)] font-medium mb-1">Submission</div>
+                  <div className={`text-sm font-bold mt-1 ${session.proctoring.auto_submitted ? "text-red-600" : "text-emerald-600"}`}>
+                    {session.proctoring.auto_submitted ? "⛔ Auto-submitted" : "✅ Normal"}
+                  </div>
+                  {session.proctoring.last_violation_at && (
+                    <div className="text-xs text-[var(--muted)] mt-1">
+                      Last: {fmtDateIST(session.proctoring.last_violation_at)}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 mt-4">
-                <div className="text-xs font-semibold text-[var(--muted)] mb-3">Event log</div>
-                {(session?.proctoring?.events || []).length ? (
+              {/* Event log table */}
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
+                <div className="px-4 py-3 border-b border-[var(--border)]">
+                  <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">
+                    Violation Event Log ({(session.proctoring.events || []).length} events)
+                  </span>
+                </div>
+                {(session.proctoring.events || []).length ? (
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-[rgba(16,185,129,0.08)] text-[var(--muted)]">
-                        <tr>
-                          <th className="text-left px-4 py-2 font-medium">#</th>
-                          <th className="text-left px-4 py-2 font-medium">Type</th>
-                          <th className="text-left px-4 py-2 font-medium">Time (IST)</th>
+                      <thead>
+                        <tr className="bg-[var(--surface)] text-[var(--muted)] text-xs">
+                          <th className="text-left px-4 py-2.5 font-semibold">#</th>
+                          <th className="text-left px-4 py-2.5 font-semibold">Violation Type</th>
+                          <th className="text-left px-4 py-2.5 font-semibold">Description</th>
+                          <th className="text-left px-4 py-2.5 font-semibold">Time (IST)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[var(--border)]">
-                        {(session?.proctoring?.events || []).map((ev, i) => (
-                          <tr key={i}>
-                            <td className="px-4 py-2">{i + 1}</td>
-                            <td className="px-4 py-2">{ev?.type || "screen-switch"}</td>
-                            <td className="px-4 py-2">{fmtDateIST(ev?.at || ev?.at_ist)}</td>
-                          </tr>
-                        ))}
+                        {(session.proctoring.events || []).map((ev, i) => {
+                          const typeColorMap = {
+                            "tab-hidden":        "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                            "tab-switch":        "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                            "window-blur":       "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                            "fullscreen-exit":   "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                            "camera-off":        "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                            "copy-paste":        "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+                            "right-click":       "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+                            "keyboard-shortcut": "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+                          };
+                          const colorCls = typeColorMap[ev?.type] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+                          return (
+                            <tr key={i} className="hover:bg-[var(--surface)] transition-colors">
+                              <td className="px-4 py-2.5 text-[var(--muted)]">{i + 1}</td>
+                              <td className="px-4 py-2.5">
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${colorCls}`}>
+                                  {ev?.type || "unknown"}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 text-[var(--muted)] text-xs">
+                                {ev?.description || "—"}
+                              </td>
+                              <td className="px-4 py-2.5 text-xs text-[var(--muted)]">
+                                {fmtDateIST(ev?.at_ist || ev?.at)}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
-                ) : <div className="text-sm text-[var(--muted)]">No proctoring events.</div>}
+                ) : (
+                  <div className="px-4 py-6 text-center text-sm text-[var(--muted)]">
+                    No proctoring violations recorded.
+                  </div>
+                )}
               </div>
+
+              {/* Warning messages */}
+              {(session.proctoring.warnings || []).length > 0 && (
+                <div className="mt-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+                  <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2 uppercase tracking-wide">
+                    Warning Messages Shown to Student
+                  </div>
+                  <div className="space-y-2">
+                    {(session.proctoring.warnings || []).map((w, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300">
+                        <span className="font-bold shrink-0">#{i + 1}</span>
+                        <span className="flex-1">{w?.message || `Warning ${i + 1}`}</span>
+                        <span className="shrink-0 text-amber-600 dark:text-amber-500">{fmtDateIST(w?.at || w?.at_ist)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : null}
         </>

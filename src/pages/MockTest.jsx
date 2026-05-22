@@ -925,34 +925,97 @@ export function SessionRunner({ isPractice = false, sectionsOpen = false, navOpe
             {!activeItem ? (
               <div className="text-sm text-[var(--muted)]">No items in this section.</div>
             ) : activeSection !== "coding" && activeSection !== "sql" ? (
-              <div className="w-full max-w-5xl space-y-6 py-6">
-                  <div className="text-xs text-[var(--muted)]">{activeItem.topic || ""}</div>
-                  <div className="text-2xl md:text-3xl font-semibold text-[var(--text)] whitespace-pre-wrap leading-snug">{activeItem.question}</div>
-
-                  <div className="grid md:grid-cols-2 gap-3">
-                    {(activeItem.options || []).map((opt, idx) => {
-                      const sel = answers?.[activeSection]?.[activeItem.id];
-                      const chosen = Number(sel) === idx;
-                      const expired = (perRemaining?.[activeItem.id] ?? MCQ_PER_Q_SEC) <= 0;
-                      return (
-                        <button
-                          key={idx}
-                          disabled={locked || expired}
-                          onClick={() => setMcqAnswer(activeSection, activeItem.id, idx)}
-                          className={`text-left px-7 py-5 rounded-2xl border transition disabled:opacity-60 ${
-                            chosen ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]" : "border-[var(--border)] hover:bg-[var(--bg)]"
-                          }`}
-                        >
-                          <div className="text-lg md:text-xl text-[var(--text)]">{opt}</div>
-                        </button>
-                      );
-                    })}
+              <div className="w-full max-w-3xl mx-auto py-4 space-y-5">
+                {/* Progress bar */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-medium text-[var(--muted)]">Q {activeIndex + 1} of {qList.length}</span>
+                    <span
+                      className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                        (perRemaining?.[activeItem.id] ?? MCQ_PER_Q_SEC) <= 10
+                          ? "bg-red-100 text-red-600"
+                          : (perRemaining?.[activeItem.id] ?? MCQ_PER_Q_SEC) <= 30
+                          ? "bg-amber-100 text-amber-700"
+                          : "text-[var(--accent)]"
+                      }`}
+                      style={(perRemaining?.[activeItem.id] ?? MCQ_PER_Q_SEC) > 30 ? { background: "var(--accent-light)" } : {}}
+                    >
+                      {fmtClock(perRemaining?.[activeItem.id] ?? MCQ_PER_Q_SEC)}
+                    </span>
                   </div>
-
-                  {!locked && (perRemaining?.[activeItem.id] ?? MCQ_PER_Q_SEC) <= 0 ? (
-                    <div className="text-xs text-red-400">Time up for this question.</div>
-                  ) : null}
+                  <div className="h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${((activeIndex + 1) / (qList.length || 1)) * 100}%`, background: "var(--grad)" }}
+                    />
+                  </div>
                 </div>
+
+                {/* Question card */}
+                <div className="rounded-2xl bg-[var(--card)] border border-[var(--border)] p-6 shadow-sm">
+                  {activeItem.topic ? (
+                    <div
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold mb-3"
+                      style={{ background: "var(--accent-light)", color: "var(--accent)" }}
+                    >
+                      {activeItem.topic}
+                    </div>
+                  ) : null}
+                  <div className="text-xl md:text-2xl font-semibold text-[var(--text)] whitespace-pre-wrap leading-relaxed">
+                    {activeItem.question}
+                  </div>
+                </div>
+
+                {/* Colorful option cards */}
+                <div className="grid md:grid-cols-2 gap-3">
+                  {(activeItem.options || []).map((opt, idx) => {
+                    const sel = answers?.[activeSection]?.[activeItem.id];
+                    const chosen = Number(sel) === idx;
+                    const expired = (perRemaining?.[activeItem.id] ?? MCQ_PER_Q_SEC) <= 0;
+                    const OPTION_COLORS = [
+                      { bg: "rgba(79,70,229,0.08)", border: "#4F46E5", label: "#4F46E5", labelBg: "rgba(79,70,229,0.15)" },
+                      { bg: "rgba(245,158,11,0.08)", border: "#F59E0B", label: "#D97706", labelBg: "rgba(245,158,11,0.15)" },
+                      { bg: "rgba(16,185,129,0.08)", border: "#10B981", label: "#059669", labelBg: "rgba(16,185,129,0.15)" },
+                      { bg: "rgba(139,92,246,0.08)", border: "#8B5CF6", label: "#7C3AED", labelBg: "rgba(139,92,246,0.15)" },
+                    ];
+                    const col = OPTION_COLORS[idx % OPTION_COLORS.length];
+                    const labels = ["A", "B", "C", "D", "E", "F"];
+                    return (
+                      <button
+                        key={idx}
+                        disabled={locked || expired}
+                        onClick={() => setMcqAnswer(activeSection, activeItem.id, idx)}
+                        className="text-left rounded-2xl border-2 transition-all disabled:opacity-60 flex items-start gap-4 p-4"
+                        style={{
+                          borderColor: chosen ? col.border : "var(--border)",
+                          backgroundColor: chosen ? col.bg : "var(--card)",
+                        }}
+                      >
+                        <div
+                          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm transition-colors"
+                          style={{
+                            backgroundColor: chosen ? col.labelBg : "var(--bg)",
+                            color: chosen ? col.label : "var(--muted)",
+                            border: chosen ? "none" : "1px solid var(--border)",
+                          }}
+                        >
+                          {labels[idx] || String.fromCharCode(65 + idx)}
+                        </div>
+                        <div className="flex-1 text-base font-medium text-[var(--text)] leading-relaxed pt-1">
+                          {opt}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {!locked && (perRemaining?.[activeItem.id] ?? MCQ_PER_Q_SEC) <= 0 ? (
+                  <div className="flex items-center gap-2 text-sm text-red-500 font-medium">
+                    <XCircle size={16} />
+                    Time&apos;s up for this question.
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <CodingPanel
                 sessionId={sessionId}
@@ -1737,12 +1800,21 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
         >
           <div className="px-4 py-2 border-b border-[var(--border)] text-xs text-[var(--muted)] flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <button type="button" onClick={() => setLeftTab("description")} className={`px-2 py-1 rounded-lg border text-[11px] ${leftTab === "description" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>Description</button>
-              {isSql ? <button type="button" onClick={() => setLeftTab("sql_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${leftTab === "sql_schema" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>SQL Schema</button> : null}
-              {isSql ? <button type="button" onClick={() => setLeftTab("pandas_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${leftTab === "pandas_schema" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>Pandas Schema</button> : null}
+              <button type="button" onClick={() => setLeftTab("description")} className={`px-2 py-1 rounded-lg border text-[11px] ${leftTab === "description" ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)]"}`}>Description</button>
+              {isSql ? <button type="button" onClick={() => setLeftTab("sql_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${leftTab === "sql_schema" ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)]"}`}>SQL Schema</button> : null}
+              {isSql ? <button type="button" onClick={() => setLeftTab("pandas_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${leftTab === "pandas_schema" ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)]"}`}>Pandas Schema</button> : null}
             </div>
             <div className="flex items-center gap-2">
-              <span className="px-2 py-1 rounded-lg border border-[var(--border)] text-[11px]">{sessionDifficulty || problem?.difficulty || "Medium"}</span>
+              <span className={`px-2 py-1 rounded-lg border text-[11px] font-semibold ${
+                ((sessionDifficulty || problem?.difficulty || "Medium") + "").toLowerCase() === "easy"
+                  ? "border-emerald-400 text-emerald-600 bg-emerald-50"
+                  : ((sessionDifficulty || problem?.difficulty || "Medium") + "").toLowerCase() === "hard" ||
+                    ((sessionDifficulty || problem?.difficulty || "Medium") + "").toLowerCase() === "difficult"
+                  ? "border-red-400 text-red-600 bg-red-50"
+                  : "border-amber-400 text-amber-600 bg-amber-50"
+              }`}>
+                {sessionDifficulty || problem?.difficulty || "Medium"}
+              </span>
               <span className="px-2 py-1 rounded-lg border border-[var(--border)] text-[11px]">{problem?.topic || (isSql ? "SQL" : "DSA")}</span>
             </div>
           </div>
@@ -1772,13 +1844,22 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
 
               {samples.length ? (
                 <div className="mt-4 space-y-2">
-                  <div className="text-xs text-[var(--muted)]">Samples</div>
+                  <div className="text-xs font-semibold text-[var(--muted)]">Examples</div>
                   {samples.map((s, i) => (
-                    <div key={i} className="rounded-xl border border-[var(--border)] p-3">
-                      <div className="text-[11px] text-[var(--muted)]">Input</div>
-                      <pre className="text-sm text-[var(--text)] whitespace-pre-wrap">{s.input}</pre>
-                      <div className="text-[11px] text-[var(--muted)] mt-2">Output</div>
-                      <pre className="text-sm text-[var(--text)] whitespace-pre-wrap">{s.output}</pre>
+                    <div key={i} className="rounded-xl border border-[var(--border)] overflow-hidden">
+                      <div className="px-3 py-1.5 border-b border-[var(--border)] bg-[var(--bg)] text-[11px] font-semibold text-[var(--muted)]">
+                        Example {i + 1}
+                      </div>
+                      <div className="p-3 space-y-2">
+                        <div>
+                          <div className="text-[11px] font-semibold text-[var(--muted)] mb-1">Input</div>
+                          <pre className="text-xs text-[var(--text)] whitespace-pre-wrap font-mono bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2">{s.input}</pre>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-semibold text-[var(--muted)] mb-1">Output</div>
+                          <pre className="text-xs text-[var(--text)] whitespace-pre-wrap font-mono bg-[var(--bg)] border border-[var(--border)] rounded-lg p-2">{s.output}</pre>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1790,8 +1871,8 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
         </div>
 
         {/* splitter */}
-        <div onMouseDown={startDragX} className="mx-3 w-2 cursor-col-resize flex items-center justify-center" title="Drag to resize">
-          <div className="h-16 w-1 rounded-full bg-emerald-500/50" />
+        <div onMouseDown={startDragX} className="mx-2 w-3 cursor-col-resize flex items-center justify-center group" title="Drag to resize">
+          <div className="h-16 w-1 rounded-full transition-all group-hover:h-24" style={{ background: "var(--accent)", opacity: 0.4 }} />
         </div>
 
         {/* Right */}
@@ -1803,9 +1884,9 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
           >
             <div className="px-4 py-2 border-b border-[var(--border)] text-xs text-[var(--muted)] flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <button type="button" onClick={() => setRightTab("code")} className={`px-2 py-1 rounded-lg border text-[11px] ${rightTab === "code" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>Code</button>
-                {isSql ? <button type="button" onClick={() => setRightTab("sql_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${rightTab === "sql_schema" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>SQL Schema</button> : null}
-                {isSql ? <button type="button" onClick={() => setRightTab("pandas_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${rightTab === "pandas_schema" ? "border-emerald-500 text-emerald-600" : "border-[var(--border)]"}`}>Pandas Schema</button> : null}
+                <button type="button" onClick={() => setRightTab("code")} className={`px-2 py-1 rounded-lg border text-[11px] ${rightTab === "code" ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)]"}`}>Code</button>
+                {isSql ? <button type="button" onClick={() => setRightTab("sql_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${rightTab === "sql_schema" ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)]"}`}>SQL Schema</button> : null}
+                {isSql ? <button type="button" onClick={() => setRightTab("pandas_schema")} className={`px-2 py-1 rounded-lg border text-[11px] ${rightTab === "pandas_schema" ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)]"}`}>Pandas Schema</button> : null}
                 {runningSamples ? <span className="text-[11px]">• Running</span> : null}
                 {submittingAll ? <span className="text-[11px]">• Submitting</span> : null}
                 {wallMs != null ? <span className="text-[11px]">• {wallMs} ms</span> : null}
@@ -1852,7 +1933,7 @@ function CodingPanel({ sessionId, tokenGetter, problem, submission, onChange, lo
               });
             }}
           >
-            <div className="w-20 h-1 rounded-full bg-emerald-500/50" />
+            <div className="w-20 h-1 rounded-full transition-all hover:w-28" style={{ background: "var(--accent)", opacity: 0.4 }} />
           </div>
 
           {/* Results */}

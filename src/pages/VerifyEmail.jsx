@@ -61,20 +61,25 @@ export default function VerifyEmail() {
 
   return (
     <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 py-10 bg-[var(--bg)] text-[var(--text)]">
-      <div className="w-full max-w-lg bg-[var(--card)] border border-[var(--border)] shadow-sm rounded-2xl p-6">
-        <h1 className="text-2xl font-bold">Verify your email</h1>
-        <p className="text-sm text-[var(--muted)] mt-2">
+      <div className="w-full max-w-md bg-[var(--card)] border border-[var(--border)] shadow-card rounded-3xl p-8 text-center">
+        <div className="w-16 h-16 rounded-2xl mb-5 grid place-items-center mx-auto" style={{ background: "var(--accent-light)" }}>
+          <svg className="w-8 h-8" style={{ color: "var(--accent)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-[var(--text)]">Verify your email</h1>
+        <p className="text-sm text-[var(--muted)] mt-2 mb-6">
           Click the button below to verify your email and activate your Zenith account.
         </p>
 
         {msg && (
-          <div className="mt-4 text-sm text-green-800 bg-green-50 border border-green-200 rounded-xl p-3">
+          <div className="mb-4 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
             {msg}
           </div>
         )}
 
         {err && (
-          <div className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">
+          <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">
             {err}
           </div>
         )}
@@ -82,18 +87,25 @@ export default function VerifyEmail() {
         <button
           onClick={handleVerify}
           disabled={loading || !hasToken}
-          className="mt-6 w-full rounded-xl py-3 bg-blue-600 text-white font-semibold hover:opacity-90 disabled:opacity-60"
+          className="w-full primary-btn py-3 text-base disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {loading ? "Verifying..." : "Verify my email"}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              Verifying…
+            </span>
+          ) : "Verify my email"}
         </button>
 
-        <div className="mt-5 text-sm text-[var(--muted)]">
-          If you already verified, you can{" "}
-          <Link to="/login" className="text-blue-600 font-semibold hover:underline">
-            login
+        <p className="mt-5 text-sm text-[var(--muted)]">
+          Already verified?{" "}
+          <Link to="/login" className="font-semibold hover:underline" style={{ color: "var(--accent)" }}>
+            Log in
           </Link>
-          .
-        </div>
+        </p>
       </div>
     </div>
   );

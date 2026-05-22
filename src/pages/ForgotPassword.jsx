@@ -51,42 +51,45 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 py-10 bg-[var(--bg)] text-[var(--text)]">
-      <div className="w-full max-w-lg bg-[var(--card)] border border-[var(--border)] shadow-sm rounded-2xl p-6">
-        <h1 className="text-2xl font-bold">Reset your password</h1>
-        <p className="text-sm text-[var(--muted)] mt-2">
-          Enter your account email and we’ll send you a password reset link.
+    <div className="min-h-[calc(100vh-65px)] flex items-center justify-center px-4 py-12 bg-[var(--bg)] text-[var(--text)]">
+      <div className="w-full max-w-md bg-[var(--card)] border border-[var(--border)] shadow-card rounded-2xl p-8">
+        <div className="w-12 h-12 rounded-2xl mb-5 grid place-items-center" style={{ background: "var(--accent-light)" }}>
+          <svg className="w-6 h-6" style={{ color: "var(--accent)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-[var(--text)]">Reset your password</h1>
+        <p className="text-sm text-[var(--muted)] mt-1.5 mb-6">
+          Enter your account email and we&apos;ll send you a password reset link.
         </p>
 
         {msg && (
-          <div className="mt-4 text-sm text-green-800 bg-green-50 border border-green-200 rounded-xl p-3">
+          <div className="mb-4 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
             {msg}
           </div>
         )}
-
         {err && (
-          <div className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">
+          <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">
             {err}
           </div>
         )}
 
-        <form onSubmit={submit} className="mt-6 space-y-4">
+        <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Email</label>
+            <label className="ui-label mb-1.5 block">Email address</label>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               required
-              className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 outline-none"
+              className="ui-input"
               placeholder="you@domain.com"
             />
           </div>
-
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl py-3 bg-blue-600 text-white font-semibold hover:opacity-90 disabled:opacity-60"
+            className="w-full primary-btn py-3 text-base disabled:opacity-60"
           >
             {loading ? "Sending..." : "Send reset link"}
           </button>
@@ -94,7 +97,7 @@ export default function ForgotPassword() {
 
         <div className="mt-5 text-sm text-[var(--muted)]">
           Back to{" "}
-          <Link to="/login" className="text-blue-600 font-semibold hover:underline">
+          <Link to="/login" className="font-semibold hover:underline" style={{ color: "var(--accent)" }}>
             Login
           </Link>
         </div>

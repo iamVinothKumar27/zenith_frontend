@@ -27,57 +27,70 @@ async function fetchWithFallback(path, options) {
   throw lastErr || new Error("Network error");
 }
 
-const SlideLeft = (delay) => ({
-  initial: { opacity: 0, x: 50 },
-  animate: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.3, delay, ease: "easeInOut" },
-  },
-});
+const ICON_COLORS = [
+  { bg: "bg-indigo-50 dark:bg-indigo-900/20", icon: "text-indigo-600" },
+  { bg: "bg-violet-50 dark:bg-violet-900/20", icon: "text-violet-600" },
+  { bg: "bg-sky-50 dark:bg-sky-900/20", icon: "text-sky-600" },
+  { bg: "bg-emerald-50 dark:bg-emerald-900/20", icon: "text-emerald-600" },
+  { bg: "bg-rose-50 dark:bg-rose-900/20", icon: "text-rose-600" },
+];
 
-/**
- * Reusable promo grid used by both Mock Tests and Practice Tests,
- * so both sections stay pixel-identical and theme-consistent.
- */
-export function PromoGridSection({
-  id,
-  title,
-  subtitle,
-  cards,
-  onCardClick,
-}) {
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+};
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.38, ease: "easeOut" } },
+};
+
+export function PromoGridSection({ id, title, subtitle, cards, onCardClick }) {
   const [selected, setSelected] = useState(null);
 
   return (
-    <section id={id} className="bg-[var(--bg)] text-[var(--text)]">
-      <div className="container pb-14 pt-16">
-        <h1 className="text-4xl font-bold text-left pb-2 text-[var(--text)]">
-          {title}
-        </h1>
-        <div className="text-sm text-[var(--muted)] pb-10">{subtitle}</div>
+    <section id={id} className="bg-[var(--bg)] py-20">
+      <div className="container">
+        {/* Header */}
+        <div className="mb-12">
+          <div className="section-eyebrow mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+            Practice & Assessment
+          </div>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h2 className="section-title mb-2">{title}</h2>
+              <p className="text-[var(--muted)] text-base max-w-xl">{subtitle}</p>
+            </div>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8">
+        {/* Cards */}
+        <motion.div
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-60px" }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"
+        >
           {cards.map((c, i) => {
             const Icon = c.icon;
+            const colors = ICON_COLORS[i % ICON_COLORS.length];
             const isActive = c.key === selected;
 
             return (
               <motion.div
                 key={c.key}
-                variants={SlideLeft(i * 0.1)}
-                initial="initial"
-                whileInView="animate"
-                viewport={{ once: true }}
+                variants={item}
                 onClick={() => {
                   setSelected(c.key);
                   onCardClick?.(c);
                 }}
                 className={[
-                  "cursor-pointer bg-[var(--card)] border border-[var(--border)] rounded-2xl",
-                  "flex flex-col gap-3 items-center justify-center p-4 py-7 min-h-[240px]",
-                  "hover:scale-110 duration-300 hover:shadow-2xl",
-                  isActive ? "ring-2 ring-[var(--accent)]/40" : "",
+                  "group cursor-pointer bg-[var(--card)] rounded-2xl border p-5 flex flex-col gap-4",
+                  "transition-all duration-300 hover:-translate-y-1",
+                  isActive
+                    ? "border-[var(--accent)] shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
+                    : "border-[var(--border)] hover:border-[var(--accent-border)] hover:shadow-[0_8px_24px_rgba(79,70,229,0.10)]",
                 ].join(" ")}
                 role="button"
                 tabIndex={0}
@@ -89,25 +102,31 @@ export function PromoGridSection({
                   }
                 }}
               >
-                <div className="text-4xl mb-1 text-[var(--text)]">
-                  <Icon size={40} className="text-[var(--text)]" />
+                {/* Icon */}
+                <div className={`w-12 h-12 rounded-2xl ${colors.bg} grid place-items-center shrink-0`}>
+                  <Icon className={`w-6 h-6 ${colors.icon}`} />
                 </div>
 
-                <h2 className="text-lg font-semibold text-center px-3">
-                  {c.label}
-                </h2>
-
-                <p className="text-sm text-[var(--muted)] text-center leading-relaxed px-2">
-                  {c.desc}
-                </p>
-
-                <div className="bg-[var(--accent)] text-white px-4 py-2 rounded-lg hover:bg-[var(--accent-2)] transition">
-                  Start
+                {/* Content */}
+                <div className="flex-1">
+                  <h3 className="font-semibold text-[var(--text)] text-sm mb-1.5 group-hover:text-[var(--accent)] transition-colors">
+                    {c.label}
+                  </h3>
+                  <p className="text-xs text-[var(--muted)] leading-relaxed">{c.desc}</p>
                 </div>
+
+                {/* CTA */}
+                <button
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:shadow-md hover:brightness-110"
+                  style={{ background: "var(--grad)" }}
+                  onClick={(e) => { e.stopPropagation(); setSelected(c.key); onCardClick?.(c); }}
+                >
+                  Start Now
+                </button>
               </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
@@ -118,36 +137,11 @@ export default function MockTestPromo() {
 
   const cards = useMemo(
     () => [
-      {
-        key: "general",
-        label: "General Aptitude",
-        desc: "Quant • Logical • Verbal (screening)",
-        icon: Brain,
-      },
-      {
-        key: "tech",
-        label: "Tech Aptitude",
-        desc: "DSA • OOP • OS • CN • DBMS",
-        icon: Puzzle,
-      },
-      {
-        key: "coding",
-        label: "Coding",
-        desc: "DSA problems with hidden testcases",
-        icon: Code2,
-      },
-      {
-        key: "sql",
-        label: "SQL",
-        desc: "Schema-based SQL screening with hidden datasets",
-        icon: Database,
-      },
-      {
-        key: "all",
-        label: "All-in-One",
-        desc: "General + Tech + Coding + SQL (full screening)",
-        icon: Flame,
-      },
+      { key: "general", label: "General Aptitude", desc: "Quant · Logical · Verbal screening", icon: Brain },
+      { key: "tech", label: "Tech Aptitude", desc: "DSA · OOP · OS · CN · DBMS", icon: Puzzle },
+      { key: "coding", label: "Coding", desc: "DSA problems with hidden testcases", icon: Code2 },
+      { key: "sql", label: "SQL", desc: "Schema-based SQL screening with datasets", icon: Database },
+      { key: "all", label: "All-in-One", desc: "General + Tech + Coding + SQL full screen", icon: Flame },
     ],
     []
   );
@@ -158,9 +152,7 @@ export default function MockTestPromo() {
       title="Mock Tests"
       subtitle="Practice like real screening — Aptitude + Tech + Coding with hidden testcases."
       cards={cards}
-      onCardClick={(c) =>
-        navigate(`/start-mock-test?mode=${encodeURIComponent(c.key)}`)
-      }
+      onCardClick={(c) => navigate(`/start-mock-test?mode=${encodeURIComponent(c.key)}`)}
     />
   );
 }

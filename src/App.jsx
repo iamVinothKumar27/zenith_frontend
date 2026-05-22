@@ -18,6 +18,7 @@ import Contact from "./pages/Contact.jsx";
 
 import MockTestShell from "./pages/MockTestShell.jsx";
 import MockTestHistory from "./pages/MockTestHistory.jsx";
+import ProctoringCheck from "./proctoring/ProctoringCheck.jsx";
 import PracticeHistory from "./pages/PracticeHistory.jsx";
 import MyTests from "./pages/MyTests.jsx";
 import StartMockTest from "./pages/StartMockTest.jsx";
@@ -85,6 +86,16 @@ export default function App() {
       <ErrorBoundary>
         <Routes>
           
+
+          {/* Proctoring check — shown between test config and the actual test */}
+          <Route
+            path="/proctor-check/:sessionId"
+            element={
+              <ProtectedRoute>
+                <ProctoringCheck />
+              </ProtectedRoute>
+            }
+          />
 
           {/* ✅ Mock Test (no main header/footer) */}
           <Route
